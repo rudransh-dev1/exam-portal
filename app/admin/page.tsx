@@ -451,12 +451,12 @@ export default function AdminPage() {
     { id: "dashboard",   label: "Dashboard",   icon: "📊" },
     { id: "leaderboard", label: "Leaderboard", icon: "⚡" },
     { id: "questions",   label: "Exam",        icon: "📋" },
+    { id: "pyhunt",      label: "Events",      icon: "🏆" },
     { id: "students",    label: "Students",    icon: "👥" },
     { id: "ingest",      label: "Harvester",   icon: "🌌" },
     // { id: "control",     label: "Control",     icon: "🛸" },  // Commented out – not needed yet
     // { id: "grading",     label: "Grading",     icon: "⚙️" },
     { id: "sos",         label: "SOS",         icon: "🆘" },
-    // { id: "pyhunt",      label: "PyHunt",      icon: "🪄" },
     { id: "ai_test",     label: "AI Test",     icon: "🤖" },
   ];
 
@@ -672,7 +672,7 @@ export default function AdminPage() {
       {activeTab === "questions"   && <QuestionsTab students={students} />}
       {activeTab === "students"    && <StudentsTab />}
       {activeTab === "sos"         && <SOSAdminPage />}
-      {/* activeTab === "pyhunt"      && <PyHuntAdminTab /> */}
+      {activeTab === "pyhunt"      && <PyHuntAdminTab />}
       {activeTab === "ai_test"     && (
         <div className={adminStyles.managementPage}>
           <div className={adminStyles.header}>
