@@ -456,7 +456,7 @@ export default function AdminPage() {
     // { id: "control",     label: "Control",     icon: "🛸" },  // Commented out – not needed yet
     // { id: "grading",     label: "Grading",     icon: "⚙️" },
     { id: "sos",         label: "SOS",         icon: "🆘" },
-    { id: "pyhunt",      label: "PyHunt",      icon: "🪄" },
+    // { id: "pyhunt",      label: "PyHunt",      icon: "🪄" },
     { id: "ai_test",     label: "AI Test",     icon: "🤖" },
   ];
 
@@ -672,7 +672,7 @@ export default function AdminPage() {
       {activeTab === "questions"   && <QuestionsTab students={students} />}
       {activeTab === "students"    && <StudentsTab />}
       {activeTab === "sos"         && <SOSAdminPage />}
-      {activeTab === "pyhunt"      && <PyHuntAdminTab />}
+      {/* activeTab === "pyhunt"      && <PyHuntAdminTab /> */}
       {activeTab === "ai_test"     && (
         <div className={adminStyles.managementPage}>
           <div className={adminStyles.header}>
@@ -2038,10 +2038,11 @@ function StudentsTab() {
 
 
         return (
-        <div className={adminStyles.tableWrapper}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: 32, alignItems: "start" }}>
+          <div className={adminStyles.tableWrapper}>
           <table className={adminStyles.table}>
             <thead>
-              <tr><th>#</th><th>USN</th><th>Name</th><th>Email</th><th>Branch</th><th>Completed</th><th>Avg %</th><th>PyHunt</th><th>Actions</th></tr>
+              <tr><th>#</th><th>USN</th><th>Name</th><th>Email</th><th>Branch</th><th>Completed</th><th>Avg %</th>{/*<th>PyHunt</th>*/}<th>Actions</th></tr>
 
             </thead>
             <tbody>
@@ -2078,7 +2079,7 @@ function StudentsTab() {
                       );
                     })()}
                   </td>
-                  <td>
+                  {/* <td>
                     {(() => {
                       const ph = (window as any).__pyHuntSessions?.find((p: any) => p.student_id === s.student_id || p.student_id === s.usn);
                       if (!ph) return <span style={{ opacity: 0.2 }}>—</span>;
@@ -2089,7 +2090,7 @@ function StudentsTab() {
                         </span>
                       );
                     })()}
-                  </td>
+                  </td> */}
                   {/* Warnings removed per request */}
 
                   <td>
@@ -2107,6 +2108,10 @@ function StudentsTab() {
               })}
             </tbody>
           </table>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 24, paddingRight: 8 }}>
+          <LiveEventsFeed students={students} />
+        </div>
         </div>
         );
       })()}
@@ -2216,6 +2221,7 @@ function StudentsTab() {
             </div>
 
             {/* PyHunt Progress */}
+            {/*
             <div style={{ background: "linear-gradient(135deg, rgba(0, 220, 255, 0.08), rgba(0, 220, 255, 0.02))", border: "1px solid rgba(0, 220, 255, 0.2)", borderRadius: 16, padding: 18, marginBottom: 20 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                 <h4 style={{ margin: 0, fontSize: 14, color: "#00dcff", fontWeight: 800, display: "flex", alignItems: "center", gap: 8 }}>
@@ -2244,6 +2250,7 @@ function StudentsTab() {
                 <div style={{ textAlign: "center", padding: 10, fontSize: 13, color: "rgba(0,220,255,0.4)", fontStyle: "italic" }}>No PyHunt journey recorded for this initiate.</div>
               )}
             </div>
+            */}
 
             <div style={{ display: "flex", justifyContent: "flex-end" }}>
               <button className="btn btn-primary" onClick={() => setInfoStudent(null)} style={{ padding: "12px 32px", borderRadius: 14, fontWeight: 800 }}>Done</button>
