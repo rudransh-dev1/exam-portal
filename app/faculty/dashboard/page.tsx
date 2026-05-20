@@ -38,7 +38,7 @@ const $ = {
 type FacultyTab = "overview" | "questions" | "events" | "students";
 
 export default function FacultyDashboardPage() {
-  const router = useRouter();
+  const { push } = useRouter();
   const [activeTab, setActiveTab] = useState<FacultyTab>("overview");
   const [faculty, setFaculty] = useState<any>(null);
   const [stats, setStats] = useState({ active_students: 0, question_count: 0, branch_count: 0, branches: [] });
@@ -48,7 +48,7 @@ export default function FacultyDashboardPage() {
   useEffect(() => {
     const token = localStorage.getItem("faculty_token");
     if (!token) {
-      router.push("/faculty/login");
+      push("/faculty/login");
       return;
     }
     const info = localStorage.getItem("faculty_info");
@@ -56,7 +56,7 @@ export default function FacultyDashboardPage() {
       setFaculty(JSON.parse(info));
     }
     fetchStats();
-  }, [router]);
+  }, [push]);
 
   const fetchStats = async () => {
     try {
@@ -66,7 +66,7 @@ export default function FacultyDashboardPage() {
       });
       if (res.status === 401 || res.status === 403) {
         localStorage.removeItem("faculty_token");
-        router.push("/faculty/login");
+        push("/faculty/login");
         return;
       }
       const data = await res.json();
@@ -81,7 +81,7 @@ export default function FacultyDashboardPage() {
   const handleLogout = () => {
     localStorage.removeItem("faculty_token");
     localStorage.removeItem("faculty_info");
-    router.push("/faculty/login");
+    push("/faculty/login");
   };
 
   if (loading) {

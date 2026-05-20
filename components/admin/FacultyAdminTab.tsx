@@ -38,7 +38,7 @@ export default function FacultyAdminTab() {
     setLoading(true);
     setError(null);
     try {
-      const data: any = await adminFetch("/py-api/admin/faculty");
+      const data: any = await adminFetch("/admin/faculty");
       setFaculty(data || []);
     } catch (err: any) {
       setError(err.message || "An error occurred");
@@ -83,7 +83,7 @@ export default function FacultyAdminTab() {
           payload.password = formData.password;
         }
 
-        const res: any = await adminFetch(`/py-api/admin/faculty/${editingFaculty.id}`, {
+        const res: any = await adminFetch(`/admin/faculty/${editingFaculty.id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
@@ -99,7 +99,7 @@ export default function FacultyAdminTab() {
           return;
         }
 
-        const res: any = await adminFetch("/py-api/admin/faculty", {
+        const res: any = await adminFetch("/admin/faculty", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(formData),
@@ -118,7 +118,7 @@ export default function FacultyAdminTab() {
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this faculty member?")) return;
     try {
-      await adminFetch(`/py-api/admin/faculty/${id}`, {
+      await adminFetch(`/admin/faculty/${id}`, {
         method: "DELETE",
       });
       fetchFaculty();

@@ -24,7 +24,7 @@ type RoundResult = {
 
 export default function EventPlayPage({ params }: { params: Promise<{ eventId: string }> }) {
   const { eventId } = use(params);
-  const router = useRouter();
+  const { push } = useRouter();
 
   const [phase, setPhase] = useState<EventPhase>("loading");
   const [eventData, setEventData] = useState<any>(null);
@@ -134,7 +134,7 @@ export default function EventPlayPage({ params }: { params: Promise<{ eventId: s
     if (document.fullscreenElement) {
       document.exitFullscreen().catch(() => {});
     }
-    router.push("/dashboard");
+    push("/dashboard");
   };
 
   // ── Render Phases ──

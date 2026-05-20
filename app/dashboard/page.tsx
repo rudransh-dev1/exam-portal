@@ -614,7 +614,7 @@ export default function DashboardPage() {
                       <section className={styles.examSection} style={{ marginBottom: "40px" }}>
                         <div className={styles.sectionHeader}>
                           <div>
-                            <h2 className={styles.sectionTitle} style={{ display: "flex", alignItems: "center", gap: "8px", background: "linear-gradient(90deg, #ec4899 0%, #a855f7 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+                            <h2 className={styles.sectionTitle} style={{ display: "flex", alignItems: "center", gap: "8px", color: "#e879f9" }}>
                               <span style={{ fontSize: "22px" }}>🏆</span> Special Event Quests
                             </h2>
                             <p className={styles.sectionSub}>High-priority multiplayer & round challenges</p>
@@ -623,10 +623,10 @@ export default function DashboardPage() {
                         </div>
 
                         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "20px", marginTop: "16px" }}>
-                          {activeEvents.map((evt) => (
+                          {activeEvents.map((evt: any) => (
                             <div key={evt.id} style={{
-                              background: "rgba(255, 255, 255, 0.03)",
-                              backdropFilter: "blur(12px)",
+                              background: "rgba(30, 20, 50, 0.4)",
+                              backdropFilter: "blur(24px)",
                               border: "1px solid rgba(168, 85, 247, 0.2)",
                               borderRadius: "16px",
                               padding: "24px",
@@ -640,14 +640,10 @@ export default function DashboardPage() {
                               boxShadow: "0 8px 32px 0 rgba(0, 0, 0, 0.37)"
                             }}
                             onMouseEnter={(e) => {
-                              e.currentTarget.style.border = "1px solid rgba(236, 72, 153, 0.5)";
-                              e.currentTarget.style.boxShadow = "0 8px 32px 0 rgba(236, 72, 153, 0.15)";
-                              e.currentTarget.style.transform = "translateY(-4px)";
+                              e.currentTarget.style.cssText = "background: rgba(30, 20, 50, 0.4); backdrop-filter: blur(24px); border: 1px solid rgba(236, 72, 153, 0.5); border-radius: 16px; padding: 24px; position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; gap: 16px; transition: all 0.3s ease; box-shadow: 0 8px 32px 0 rgba(236, 72, 153, 0.15); transform: translateY(-4px);";
                             }}
                             onMouseLeave={(e) => {
-                              e.currentTarget.style.border = "1px solid rgba(168, 85, 247, 0.2)";
-                              e.currentTarget.style.boxShadow = "0 8px 32px 0 rgba(0, 0, 0, 0.37)";
-                              e.currentTarget.style.transform = "translateY(0px)";
+                              e.currentTarget.style.cssText = "background: rgba(30, 20, 50, 0.4); backdrop-filter: blur(24px); border: 1px solid rgba(168, 85, 247, 0.2); border-radius: 16px; padding: 24px; position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; gap: 16px; transition: all 0.3s ease; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37); transform: translateY(0px);";
                             }}>
                               <div style={{ position: "absolute", top: 0, right: 0, width: "100px", height: "100px", background: "radial-gradient(circle, rgba(168,85,247,0.1) 0%, transparent 70%)", pointerEvents: "none" }} />
                               

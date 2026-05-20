@@ -25,7 +25,7 @@ const $ = {
 };
 
 export default function FacultyLoginPage() {
-  const router = useRouter();
+  const { push } = useRouter();
   const [isLogin, setIsLogin] = useState(true);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -67,7 +67,7 @@ export default function FacultyLoginPage() {
       if (isLogin) {
         localStorage.setItem("faculty_token", data.access_token);
         localStorage.setItem("faculty_info", JSON.stringify(data));
-        router.push("/faculty/dashboard");
+        push("/faculty/dashboard");
       } else {
         setSuccess("Registration request submitted! Please wait for Admin approval.");
         setIsLogin(true);

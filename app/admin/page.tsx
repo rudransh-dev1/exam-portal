@@ -2310,7 +2310,7 @@ function LiveEventsFeed({ students }: { students: (StudentRow | AdminStudent)[] 
     const newEvents: typeof events = [];
     
     // Sort students by recent activity
-    const sorted = [...students].sort((a, b) => {
+    const sorted = students.toSorted((a, b) => {
       const aTime = a.submitted_at || a.last_active || "";
       const bTime = b.submitted_at || b.last_active || "";
       return bTime.localeCompare(aTime);

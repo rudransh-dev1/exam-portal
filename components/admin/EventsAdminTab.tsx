@@ -250,7 +250,6 @@ export default function EventsAdminTab() {
               value={newName}
               onChange={e => setNewName(e.target.value)}
               placeholder="e.g. PyHunt 2025, Code Sprint, Quiz Night..."
-              autoFocus
               onKeyDown={e => e.key === "Enter" && handleCreate()}
             />
             <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
