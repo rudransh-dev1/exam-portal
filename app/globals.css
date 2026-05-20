@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Orbitron:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap");
+/* Google Fonts imported via Next.js next/font in layout.tsx */
 
 /* ── NEXUS Design Tokens (Handcrafted Galaxy Palette) ──────────────── */
 :root {
@@ -47,7 +47,13 @@
   --radius:           8px;
   --radius-lg:        12px;
   --radius-xl:        16px;
-  --font-mono:        'JetBrains Mono', monospace;
+  --font-mono:        var(--font-jetbrains-mono), monospace;
+
+  /* Category Theming */
+  --category-aptitude:    #3b82f6;
+  --category-programming: #10b981;
+  --category-events:      #a855f7;
+  --category-others:      #f59e0b;
 }
 
 /* ── Reset ───────────────────────────────────────────────── */
@@ -55,7 +61,7 @@
 html { font-size: 16px; scroll-behavior: smooth; }
 
 body {
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
   background-color: var(--deep-navy);
   color: var(--text-primary);
   min-height: 100vh;

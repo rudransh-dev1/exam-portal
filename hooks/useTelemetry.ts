@@ -21,7 +21,10 @@ interface UseTelemetryOptions {
 export function useTelemetry({ isSubmitted }: UseTelemetryOptions) {
   const queueRef     = useRef<TelemetryEvent[]>([]);
   const submittedRef = useRef(isSubmitted);
-  submittedRef.current = isSubmitted;
+
+  useEffect(() => {
+    submittedRef.current = isSubmitted;
+  }, [isSubmitted]);
 
   const flush = useCallback(async () => {
     if (queueRef.current.length === 0) return;

@@ -259,7 +259,6 @@ function EntryGate({ correctCode, onUnlock }: { correctCode: string; onUnlock: (
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={e => e.key === "Enter" && handleSubmit()}
-          autoFocus
           autoComplete="off"
         />
         <button className={styles.primaryBtn} onClick={handleSubmit} style={{ width: "100%", marginTop: 12 }}>
@@ -344,7 +343,6 @@ function ClueScreen({ roundId, clue, onUnlock }: { roundId: number; clue: ClueCo
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={e => e.key === "Enter" && handleClueSubmit()}
-              autoFocus
               autoComplete="off"
             />
             {attempts > 0 && !unlocked && (
@@ -506,67 +504,76 @@ export function RoundCoding({
     if (isSubmit) setCooldown(8);
 
     try {
-      // ── Groq AI Grader (primary) ──
       setVerifying(true);
-      setFeedback("🤖 AI is reading your code...");
+      setFeedback("⚙️ Running tests locally...");
       
-      const aiResp = await fetch("/api/ai/check-code", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          problem_title: problem.title,
-          problem_description: problem.description,
-          code,
-          test_cases: problem.testCases,
-          round_num: roundNum,
-        })
-      });
-
-      setVerifying(false);
-
-      if (aiResp.ok) {
-        const aiData = await aiResp.json();
-        const passed = aiData.correct === true || aiData.status === "Pass";
-        setEngine("🤖 Groq AI");
-        setFeedback(aiData.feedback || (passed ? "✅ Correct!" : "❌ Check your logic."));
-        if (aiData.errors && aiData.errors !== "None") setHint(`💡 ${aiData.errors}`);
-
-        // Show synthetic test results based on AI verdict
-        const synth = problem.testCases.map(tc => ({
-          pass: passed,
-          got: passed ? tc.expected : (aiData.errors || "Logic error"),
-          expected: tc.expected,
-          input: tc.input
-        }));
-        setTestResults(synth);
-        setActiveBottomTab("testcases");
-
-        if (isSubmit) {
-          setAllPass(passed);
-          if (!passed) onWrong();
-        }
-        setRunning(false);
-        return;
-      }
-
-      // ── Fallback: Local Pyodide ──
-      setFeedback("⚠ AI unavailable, running locally...");
+      let localPassed = false;
+      let localResults: any[] = [];
+      let localOut = { stdout: "", stderr: "", error: "" };
+      
       if (ready) {
         const { results, allPass: ap } = await runTests(code, problem.testCases);
         const defaultStdin = problem.testCases.length > 0 ? problem.testCases[0].input : "";
-        const out = await runCode(code, defaultStdin);
-        setTestResults(results.map((r, i) => ({ ...r, input: problem.testCases[i]?.input || "" })));
-        setOutput(out);
-        setEngine("⚙️ Local Python");
-        setFeedback(ap ? "✅ All tests passed locally!" : "❌ Some tests failed.");
-        setActiveBottomTab(isSubmit ? "testcases" : "console");
-        if (isSubmit) {
-          setAllPass(ap);
-          if (!ap) onWrong();
+        localOut = await runCode(code, defaultStdin) as any;
+        localResults = results.map((r, i) => ({ ...r, input: problem.testCases[i]?.input || "" }));
+        setTestResults(localResults);
+        setOutput(localOut);
+        
+        if (ap) {
+          localPassed = true;
+          setEngine("⚙️ Local Python");
+          setFeedback("✅ Correct! All test cases passed successfully.");
+          setActiveBottomTab("testcases");
+          if (isSubmit) {
+            setAllPass(true);
+          }
+          setRunning(false);
+          setVerifying(false);
+          return;
         }
       } else {
-        setFeedback("⚠ AI unavailable and Python engine still loading. Try again shortly.");
+        setFeedback("⚠ Python engine still loading. Try again shortly.");
+        setRunning(false);
+        setVerifying(false);
+        return;
       }
+
+      // ── Fallback: Groq AI Grader (for hints and logic feedback on failure) ──
+      setFeedback("🤖 AI is analyzing your code for hints...");
+      
+      try {
+        const aiResp = await fetch("/api/ai/check-code", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            problem_title: problem.title,
+            problem_description: problem.description,
+            code,
+            test_cases: problem.testCases,
+            round_num: roundNum,
+          })
+        });
+
+        if (aiResp.ok) {
+          const aiData = await aiResp.json();
+          setEngine("⚙️ Local + 🤖 AI Hint");
+          setFeedback(aiData.feedback || "❌ Some tests failed. Check your logic.");
+          if (aiData.errors && aiData.errors !== "None") setHint(`💡 ${aiData.errors}`);
+        } else {
+          setEngine("⚙️ Local Python");
+          setFeedback("❌ Some tests failed. (AI hint unavailable)");
+        }
+      } catch (aiErr) {
+        setEngine("⚙️ Local Python");
+        setFeedback("❌ Some tests failed. (AI hint unavailable)");
+      }
+
+      setActiveBottomTab(isSubmit ? "testcases" : "console");
+      if (isSubmit) {
+        setAllPass(false);
+        onWrong();
+      }
+
     } catch (err: any) {
       setFeedback("⚠ Error: " + err.message);
     } finally {
@@ -1051,7 +1058,7 @@ function RoundCodingDual({
    FINISH SCREEN
 ═══════════════════════════════════════════════ */
 function FinishScreen({ message, stats, timerSeconds, terminated, studentName }: { message: string; stats: { minutes: number; wrongs: number; warnings: number; round1Score?: string; round1Time?: string }; timerSeconds: number; terminated?: boolean; studentName: string }) {
-  const router = useRouter();
+  const { replace } = useRouter();
 
   if (terminated) {
     return (
@@ -1060,7 +1067,7 @@ function FinishScreen({ message, stats, timerSeconds, terminated, studentName }:
         <div className={styles.finishTitle} style={{ color: "#ef4444", textShadow: "0 0 20px rgba(239, 68, 68, 0.5)" }}>SESSION TERMINATED</div>
         <div style={{ color: "#fff", fontSize: "1.2rem", fontWeight: 800, marginBottom: 12, opacity: 0.9 }}>{studentName.toUpperCase()}</div>
         <p style={{ color: "#fca5a5", fontWeight: 600, maxWidth: 500, margin: "0 auto" }}>Your PyHunt session was automatically terminated due to excessive security violations. Please contact your facilitator.</p>
-        <button className={styles.primaryBtn} onClick={() => router.replace("/dashboard")} style={{ marginTop: 32, background: "linear-gradient(135deg, #ef4444, #991b1b)" }}>← RETURN TO DASHBOARD</button>
+        <button className={styles.primaryBtn} onClick={() => replace("/dashboard")} style={{ marginTop: 32, background: "linear-gradient(135deg, #ef4444, #991b1b)" }}>← RETURN TO DASHBOARD</button>
       </div>
     );
   }
@@ -1109,7 +1116,7 @@ function FinishScreen({ message, stats, timerSeconds, terminated, studentName }:
       </div>
 
       <div style={{ marginTop: 40, display: "flex", gap: 12, width: "100%", maxWidth: 600 }}>
-        <button className={styles.secondaryBtn} onClick={() => router.replace("/dashboard?tab=History")} style={{ flex: 1 }}>← GO TO HISTORY</button>
+        <button className={styles.secondaryBtn} onClick={() => replace("/dashboard?tab=History")} style={{ flex: 1 }}>← GO TO HISTORY</button>
         <button className={styles.primaryBtn} onClick={() => window.print()} style={{ flex: 1 }}>PRINT CERTIFICATE</button>
       </div>
 
@@ -1202,7 +1209,7 @@ function PyHuntOrb({ size = 120, label = "Initialising PyHunt…", sublabel = ""
 }
 
 export default function PyHuntPage() {
-  const router = useRouter();
+  const { replace } = useRouter();
   const [cfg, setCfg] = useState<PyHuntConfig>(DEFAULT_CONFIG);
   const [round, setRound] = useState(0);           // 0–4 = active round (5 rounds total)
   const [showingClue, setShowingClue] = useState(false);
@@ -1429,12 +1436,12 @@ export default function PyHuntPage() {
     if (!finished) return;
     const interval = setInterval(() => {
       setResultTimerSeconds(prev => {
-        if (prev <= 1) { clearInterval(interval); router.replace("/dashboard?tab=History"); return 0; }
+        if (prev <= 1) { clearInterval(interval); replace("/dashboard?tab=History"); return 0; }
         return prev - 1;
       });
     }, 1000);
     return () => clearInterval(interval);
-  }, [finished, router]);
+  }, [finished, replace]);
 
   if (pyhuntLoading) {
     return (
@@ -1462,7 +1469,7 @@ export default function PyHuntPage() {
             </p>
             <button 
               className={styles.secondaryBtn} 
-              onClick={() => router.replace("/dashboard")}
+              onClick={() => replace("/dashboard")}
               style={{ padding: "16px 32px", fontSize: 14, fontWeight: 800, letterSpacing: 1 }}
             >
               ← RETURN TO DASHBOARD
@@ -1507,7 +1514,7 @@ export default function PyHuntPage() {
               <h2 style={{ fontSize: "24px", fontWeight: 900, color: "#fff", marginBottom: "12px" }}>Secure Environment Required</h2>
               <p style={{ color: "rgba(255,255,255,0.6)", marginBottom: "32px", fontSize: "15px", lineHeight: "1.5" }}>PyHunt requires mandatory full-screen mode to ensure assessment integrity.</p>
               <div style={{ display: "flex", gap: 12, width: "100%", marginTop: 12 }}>
-                <button className={styles.secondaryBtn} onClick={() => router.replace("/dashboard")} style={{ flex: 1, padding: "14px", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.1)", background: "transparent", color: "#94a3b8", fontWeight: 600, cursor: "pointer" }}>
+                <button className={styles.secondaryBtn} onClick={() => replace("/dashboard")} style={{ flex: 1, padding: "14px", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.1)", background: "transparent", color: "#94a3b8", fontWeight: 600, cursor: "pointer" }}>
                   Back to Dashboard
                 </button>
                 <button className={styles.primaryBtn} onClick={enterFullscreen} style={{ flex: 1, padding: "14px", borderRadius: "12px", border: "none", background: "linear-gradient(135deg, #28D7D6, #0066cc)", color: "#000", fontWeight: 900, cursor: "pointer", boxShadow: "0 8px 20px rgba(40, 215, 214, 0.2)" }}>

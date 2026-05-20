@@ -209,11 +209,42 @@ class SubmitExamResponse(BaseModel):
 
 # ── Start / Session ───────────────────────────────────────────
 
+class QuizSessionOut(BaseModel):
+    id: str
+    exam_id: str
+    category: str
+    status: str
+    started_at: str
+    completed_at: Optional[str] = None
+    score: float = 0
+    total_marks: float = 0
+    metadata: Dict[str, Any] = {}
+
 class StartExamResponse(BaseModel):
     started_at: Optional[str] = None
     status: str = "active"
     started: bool = True
     exam_title: Optional[str] = None
+    session_id: Optional[str] = None
+    category: Optional[str] = "Others"
+
+class QuizResponseIn(BaseModel):
+    question_id: str
+    answer: Any
+    is_correct: Optional[bool] = None
+    marks_obtained: Optional[float] = 0
+
+class QuizSubmitRequest(BaseModel):
+    session_id: str
+    responses: List[QuizResponseIn]
+    metadata: Optional[Dict[str, Any]] = None
+
+class QuizSubmitResponse(BaseModel):
+    submitted: bool
+    score: float
+    total_marks: float
+    percentage: float
+    session_id: str
 
 
 # ── Students ──────────────────────────────────────────────────
@@ -313,6 +344,10 @@ class FolderEditBranchRequest(BaseModel):
     exam_name: Optional[str] = None
     old_branch: Optional[str] = None
     new_branch: str
+
+
+class FolderEditCategoryRequest(BaseModel):
+    new_category: str
 
 
 # ── Leaderboard ───────────────────────────────────────────────
@@ -423,7 +458,7 @@ class StudentDetailedStats(BaseModel):
     last_exam_at: Optional[str] = None
     history: List[StudentExamHistory] = []
 
-# ── PyHunt ────────────────────────────────────────────────────
+# ── LEGACY: PyHunt (DEPRECATED - Use generic QuizSession instead) ──
 
 class PyHuntProgressUpdate(BaseModel):
     current_round: str
@@ -441,4 +476,50 @@ class PyHuntProgressUpdate(BaseModel):
     round4_code: Optional[str] = None
 
 
+
+# ── Unified Sync (Request Reduction) ──────────────────────────
+
+class SyncAnswerIn(BaseModel):
+    question_id: str
+    answer_json: Dict[str, Any]
+    updated_at: str
+    is_final: bool = False
+
+class SyncEventIn(BaseModel):
+    event_id: str
+    type: str
+    payload_json: Dict[str, Any]
+    ts: int
+
+class SyncCodeSubmissionIn(BaseModel):
+    question_id: str
+    code: str
+    language: str = "python"
+    test_results: List[TestResultIn] = []
+    passed_count: int = 0
+    total_count: int = 0
+    is_final: bool = False
+    submitted_at: str
+
+class UnifiedSyncRequest(BaseModel):
+    session_id: str
+    exam_title: Optional[str] = None
+    responses: List[SyncAnswerIn] = []
+    events: List[SyncEventIn] = []
+    code_submissions: List[SyncCodeSubmissionIn] = []
+    client_ts: int
+
+class UnifiedSyncResponse(BaseModel):
+    success: bool
+    sync_ts: int
+    config: Optional[ExamConfig] = None
+    status: Optional[StudentStatus] = None
+    message: Optional[str] = None
+
+
+class PulseRequest(BaseModel):
+    session_id: str
+    exam_title: Optional[str] = None
+    ts: int
+    current_question_id: Optional[str] = None
 

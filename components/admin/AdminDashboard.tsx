@@ -33,6 +33,14 @@ const MODE_COLOR: Record<string,string> = {
   normal: "#10b981", safe: "#f59e0b", emergency: "#ef4444"
 };
 
+const THROTTLE_BTN_BASE = {
+  padding: "8px 18px",
+  borderRadius: 8,
+  fontWeight: 700,
+  fontSize: 13,
+  transition: "all 0.2s",
+};
+
 export default function AdminDashboard({ examId = "" }: Props) {
   const [agg, setAgg]               = useState<AggData|null>(null);
   const [throttleMode, setMode]     = useState("normal");
@@ -137,11 +145,12 @@ export default function AdminDashboard({ examId = "" }: Props) {
           {(["normal","safe","emergency"] as const).map(mode => (
             <button key={mode} onClick={() => setThrottle(mode)} disabled={throttleLoading}
               style={{
+                ...THROTTLE_BTN_BASE,
                 background:   throttleMode===mode ? MODE_COLOR[mode] : "transparent",
                 border:       `2px solid ${MODE_COLOR[mode]}`,
                 color:        throttleMode===mode ? "#0f172a" : MODE_COLOR[mode],
-                padding:      "8px 18px", borderRadius:8, cursor: throttleLoading?"not-allowed":"pointer",
-                fontWeight:700, fontSize:13, opacity: throttleLoading?0.6:1, transition:"all 0.2s",
+                cursor:       throttleLoading?"not-allowed":"pointer",
+                opacity:      throttleLoading?0.6:1,
                 transform:    throttleMode===mode ? "scale(1.05)" : "scale(1)",
               }}>
               {mode==="normal" ? "🟢 Normal (30s)" : mode==="safe" ? "🟡 Safe (60s)" : "🔴 Emergency (120s)"}

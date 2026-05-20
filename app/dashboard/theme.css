@@ -4,37 +4,60 @@
   --panel-glass: rgba(255, 255, 255, 0.04);
   --rim-metal: rgba(230, 180, 130, 0.08);
   --accent-warm: #FF9A4C;
-  --accent-warm-gradient: linear-gradient(90deg, #FF9A4C, #FFB77A);
+  --accent-warm-gradient: linear-gradient(135deg, #FF9A4C 0%, #FFB77A 100%);
   --accent-cool: #28D7D6;
+  --accent-cool-gradient: linear-gradient(135deg, #28D7D6 0%, #3C78FF 100%);
   --text-primary: #D8EAF2;
+  --text-secondary: #7A9AA8;
   --grain-opacity: 0.06;
+  
+  /* Premium Glass Tokens */
+  --glass-bg: rgba(13, 25, 48, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-highlight: rgba(255, 255, 255, 0.12);
+  --glass-shimmer: linear-gradient(
+    120deg,
+    rgba(255, 255, 255, 0) 30%,
+    rgba(255, 255, 255, 0.05) 50%,
+    rgba(255, 255, 255, 0) 70%
+  );
   
   /* Mapped Variables (to keep component compatibility) */
   --nexus-bg: var(--bg-deep);
   --nexus-cyan: var(--accent-cool);
-  --nexus-cyan-glow: rgba(40, 215, 214, 0.06); /* Lowered glow opacity to 0.06 */
+  --nexus-cyan-glow: rgba(40, 215, 214, 0.1);
   --nexus-orange: var(--accent-warm);
-  --nexus-orange-glow: rgba(255, 154, 76, 0.06); /* Lowered glow opacity to 0.06 */
+  --nexus-orange-glow: rgba(255, 154, 76, 0.1);
   --nexus-glass-bg: var(--panel-glass);
   --nexus-glass-border: var(--rim-metal);
   --nexus-glass-rim: var(--rim-metal);
   
   /* Radii & Shadows */
-  --nexus-radius-sm: 4px;
-  --nexus-radius-md: 8px;
-  --nexus-radius-lg: 12px;
-  --nexus-shadow-glass: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  --nexus-radius-sm: 6px;
+  --nexus-radius-md: 10px;
+  --nexus-radius-lg: 16px;
+  --nexus-shadow-glass: 0 12px 40px -10px rgba(0, 0, 0, 0.5);
+  --nexus-shadow-glow: 0 0 20px var(--nexus-cyan-glow);
+  
+  /* Category Colors */
+  --category-aptitude: #8B5CF6;
+  --category-programming: #10B981;
+  --category-events: #F59E0B;
+  --category-others: #6B7280;
   
   /* Typography */
   --nexus-font-main: 'Inter', sans-serif;
 }
 
 [data-theme='classic'] {
-  --bg-deep: #f5f7fa;
-  --panel-glass: rgba(255, 255, 255, 0.9);
-  --rim-metal: rgba(0, 0, 0, 0.1);
+  --bg-deep: #f8fafc;
+  --panel-glass: rgba(255, 255, 255, 0.95);
+  --rim-metal: rgba(0, 0, 0, 0.05);
   --accent-warm: #f59e0b;
   --accent-cool: #2563eb;
-  --text-primary: #1f2937;
+  --text-primary: #0f172a;
+  --text-secondary: #64748b;
   --grain-opacity: 0;
+  --glass-bg: rgba(255, 255, 255, 0.9);
+  --glass-border: rgba(0, 0, 0, 0.05);
 }

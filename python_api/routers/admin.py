@@ -9,7 +9,7 @@ from models.schemas import (
     QuestionCreate, QuestionUpdate,
     StudentStatus, StudentCreate, StudentUpdate,
     ExamConfig, ExamConfigUpdate, FolderRenameRequest,
-    FolderEditBranchRequest, StudentDetailedStats, StudentExamHistory
+    FolderEditBranchRequest, FolderEditCategoryRequest, StudentDetailedStats, StudentExamHistory
 )
 
 from datetime import datetime, timezone
@@ -21,6 +21,19 @@ import uuid
 
 router = APIRouter(prefix="/admin", tags=["admin management"])
 settings = get_settings()
+
+def normalize_category(cat: Optional[str]) -> str:
+    if not cat:
+        return "Others"
+    cat_lower = cat.lower().strip()
+    if any(keyword in cat_lower for keyword in ["apti", "aptitued", "aptitude", "quant"]):
+        return "Aptitude"
+    if any(keyword in cat_lower for keyword in ["prog", "programming", "code"]):
+        return "Programming"
+    if any(keyword in cat_lower for keyword in ["event", "events"]):
+        return "Events"
+    return "Others"
+
 
 def is_valid_uuid(val: str):
     """Check if a string is a valid UUID to prevent DB 500 errors."""
@@ -73,6 +86,8 @@ async def create_question(request: QuestionCreate, _: bool = Depends(verify_admi
     try:
         db = get_supabase()
         data = request.model_dump()
+        if "category" in data:
+            data["category"] = normalize_category(data["category"])
         result = db.table("questions").insert(data).execute()
 
         if not result.data:
@@ -88,6 +103,8 @@ async def update_question(question_id: str, request: QuestionUpdate, _: bool = D
     try:
         db = get_supabase()
         update_data = {k: v for k, v in request.model_dump().items() if v is not None}
+        if "category" in update_data:
+            update_data["category"] = normalize_category(update_data["category"])
         result = db.table("questions").update(update_data).eq("id", question_id).execute()
 
         if not result.data:
@@ -563,6 +580,7 @@ async def get_exam_config(title: Optional[str] = None, _: bool = Depends(verify_
         if result.data:
             row = result.data[0]
             return ExamConfig(
+                id=row.get("id"),
                 is_active=row.get("is_active", True),
                 scheduled_start=row.get("scheduled_start"),
                 scheduled_end=row.get("scheduled_end"),
@@ -576,6 +594,7 @@ async def get_exam_config(title: Optional[str] = None, _: bool = Depends(verify_
                 show_answers_after=row.get("show_answers_after", True),
                 total_questions=row.get("total_questions", 30),
                 total_marks=row.get("total_marks", 120),
+                category=row.get("category", "Others"),
                 exam_description=row.get("exam_description"),
             )
     except Exception as e:
@@ -624,9 +643,13 @@ async def update_exam_config(request: ExamConfigUpdate, _: bool = Depends(verify
         if sample.data:
             db_columns = list(sample.data[0].keys())
         else:
-            # Fallback check for common columns
-            _check = db.table("exam_config").select("scheduled_end").limit(1).execute()
-            db_columns = ["scheduled_end", "is_active", "exam_title"] # minimal set
+            # Table is empty, use the full list of fields from ExamConfig as fallback
+            db_columns = [
+                "id", "is_active", "scheduled_start", "scheduled_end", "duration_minutes", 
+                "exam_title", "marks_per_question", "negative_marks", "shuffle_questions", 
+                "shuffle_options", "max_attempts", "show_answers_after", "total_questions", 
+                "total_marks", "category", "exam_description", "updated_at"
+            ]
     except Exception:
         pass
 
@@ -685,6 +708,34 @@ async def update_exam_config(request: ExamConfigUpdate, _: bool = Depends(verify
             result = db.table("exam_config").update(update_data).eq("exam_title", request.exam_title).execute()
         else:
             # No row yet — INSERT it
+            # Specifically, ensure that when an exam is activated for the first time,
+            # it inherits the category of the questions within that folder rather than defaulting to "Others".
+            if not db_columns or "category" in db_columns:
+                if "category" not in update_data or not update_data["category"] or update_data["category"] == "Others":
+                    inherited_category = None
+                    try:
+                        probe = db.table("questions").select("*").limit(1).execute()
+                        has_exam_column = False
+                        if probe.data and len(probe.data) > 0:
+                            has_exam_column = "exam_name" in probe.data[0].keys()
+
+                        if has_exam_column:
+                            q_res = db.table("questions").select("category").eq("exam_name", request.exam_title).limit(1).execute()
+                            if q_res.data and q_res.data[0].get("category"):
+                                inherited_category = q_res.data[0].get("category")
+                        else:
+                            tag_prefix = f"⟦EXAM:{request.exam_title}⟧"
+                            q_res = db.table("questions").select("category").like("text", f"{tag_prefix}%").limit(1).execute()
+                            if q_res.data and q_res.data[0].get("category"):
+                                inherited_category = q_res.data[0].get("category")
+                        
+                        if inherited_category:
+                            normalized = normalize_category(inherited_category)
+                            update_data["category"] = normalized
+                            print(f"[ADMIN] Inherited category '{normalized}' from questions in folder '{request.exam_title}' for new exam_config.")
+                    except Exception as e:
+                        print(f"[ADMIN] Error inheriting category for new exam '{request.exam_title}': {e}")
+
             result = db.table("exam_config").insert(update_data).execute()
         
         # Invalidate cache for this exam to reflect changes immediately
@@ -693,6 +744,7 @@ async def update_exam_config(request: ExamConfigUpdate, _: bool = Depends(verify
         if result.data:
             row = result.data[0]
             return ExamConfig(
+                id=row.get("id"),
                 is_active=row.get("is_active", True),
                 scheduled_start=row.get("scheduled_start"),
                 scheduled_end=row.get("scheduled_end"),
@@ -706,6 +758,7 @@ async def update_exam_config(request: ExamConfigUpdate, _: bool = Depends(verify
                 show_answers_after=row.get("show_answers_after", True),
                 total_questions=row.get("total_questions", 30),
                 total_marks=row.get("total_marks", 120),
+                category=row.get("category", "Others"),
                 exam_description=row.get("exam_description"),
             )
     except Exception as e:
@@ -964,6 +1017,32 @@ async def edit_folder_branch(folder_name: str, request: FolderEditBranchRequest,
             db.table("questions").update({"branch": new_branch}).eq("id", q["id"]).execute()
 
     return {"status": "success", "folder": folder_name, "new_branch": new_branch}
+
+
+@router.patch("/folders/{folder_name}/category")
+async def edit_folder_category(folder_name: str, request: FolderEditCategoryRequest, _: bool = Depends(verify_admin)):
+    """Update the category for an entire Isolation Node (Folder) and its exam config."""
+    db = get_supabase()
+    new_category = normalize_category(request.new_category.strip())
+    
+    # 1. Update questions
+    probe = db.table("questions").select("*").limit(1).execute()
+    has_exam_column = False
+    if probe.data and len(probe.data) > 0:
+        has_exam_column = "exam_name" in probe.data[0].keys()
+
+    if has_exam_column:
+        db.table("questions").update({"category": new_category}).eq("exam_name", folder_name).execute()
+    else:
+        tag_prefix = f"⟦EXAM:{folder_name}⟧"
+        res = db.table("questions").select("id").like("text", f"{tag_prefix}%").execute()
+        for q in res.data:
+            db.table("questions").update({"category": new_category}).eq("id", q["id"]).execute()
+
+    # 2. Update exam_config matching exam_title = folder_name
+    db.table("exam_config").update({"category": new_category}).eq("exam_title", folder_name).execute()
+
+    return {"status": "success", "folder": folder_name, "new_category": new_category}
 
 
 # ── Crystalline Data Export ───────────────────────────────────

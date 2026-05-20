@@ -49,6 +49,166 @@
   flex: 1;
 }
 
+/* ── Header Layout ──────────────────────────────────────── */
+.headerInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* ── Command Center Status Cards ────────────────────────── */
+.statsOverview {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.statCard {
+  background: var(--panel-glass);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--rim-metal);
+  border-radius: var(--nexus-radius-md);
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.statCard:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.statIcon {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+.statMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.statLabel {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+}
+
+.statValue {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: 0.04em;
+}
+
+.statGlow {
+  position: absolute;
+  top: -20px;
+  right: -20px;
+  width: 80px;
+  height: 80px;
+  background: radial-gradient(circle, rgba(40, 215, 214, 0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* ── Section Layout ─────────────────────────────────────── */
+.examSection {
+  margin-bottom: 8px;
+}
+
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.sectionTitle {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.sectionSub {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin: 4px 0 0;
+  opacity: 0.7;
+}
+
+.liveStatusBadge {
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: #4ade80;
+  background: rgba(74, 222, 128, 0.08);
+  border: 1px solid rgba(74, 222, 128, 0.25);
+  padding: 4px 12px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  animation: pulseLive 2s ease-in-out infinite;
+}
+
+@keyframes pulseLive {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.15); }
+  50% { box-shadow: 0 0 0 6px rgba(74, 222, 128, 0); }
+}
+
+.emptyStateSimple {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 48px 24px;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  opacity: 0.6;
+  background: var(--panel-glass);
+  border: 1px dashed var(--rim-metal);
+  border-radius: var(--nexus-radius-lg);
+}
+
+/* ── Profile Extra ──────────────────────────────────────── */
+.profileName {
+  font-size: 2rem;
+  font-weight: 800;
+  margin: 0;
+  color: #fff;
+}
+
+.editIcon {
+  font-size: 1rem;
+}
+
+/* ── History Info ────────────────────────────────────────── */
+.historyInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
 .homeGrid {
   display: flex;
   flex-direction: column;
@@ -503,8 +663,10 @@
 
 /* History Section */
 .historyContainer {
-  max-width: 900px;
-  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  width: 100%;
 }
 
 .historyCard {
@@ -621,7 +783,66 @@
   font-style: italic;
 }
 
-/* Coming Soon Card */.field {
+.noExamsMsg {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem;
+  background: var(--nexus-glass-bg);
+  border: 1px dashed var(--nexus-glass-border);
+  border-radius: 24px;
+  text-align: center;
+}
+
+.historySelectContainer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.historySelect {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+  padding: 10px 36px 10px 16px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(12px);
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 14px;
+}
+
+.historySelect:hover {
+  border-color: var(--nexus-cyan, #28D7D6);
+  box-shadow: 0 0 12px rgba(40, 215, 214, 0.25);
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.historySelect:focus {
+  border-color: var(--nexus-cyan, #28D7D6);
+  box-shadow: 0 0 15px rgba(40, 215, 214, 0.4);
+}
+
+.historySelect option {
+  background: #0d1530;
+  color: #fff;
+  font-family: inherit;
+  padding: 8px;
+}
+
+/* Coming Soon Card */
+.field {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -686,6 +907,9 @@
   .insightsGrid {
     flex-direction: column;
   }
+  .statsOverview {
+    grid-template-columns: 1fr 1fr;
+  }
   .homeGrid {
     gap: 1rem;
   }
@@ -702,6 +926,18 @@
     flex-direction: column;
     align-items: flex-start;
     gap: 1rem;
+  }
+  .statsOverview {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .statCard {
+    padding: 14px;
+  }
+  .sectionHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
   }
   .profileBanner {
     flex-direction: column;
@@ -1083,6 +1319,18 @@
   .insightsSection {
     width: 100% !important;
     display: none; /* hide sidebar insights on mobile home */
+  }
+  .statsOverview {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+  .statCard {
+    padding: 14px 16px !important;
+  }
+  .sectionHeader {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 6px !important;
   }
   .cardsGrid {
     grid-template-columns: 1fr !important;

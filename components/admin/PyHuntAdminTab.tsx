@@ -685,11 +685,11 @@ function MarksView({ cfg }: { cfg: PyHuntConfig }) {
         <table style={{width:"100%", borderCollapse:"collapse", color:"#c8daf0", fontSize:13}}>
           <thead>
             <tr style={{textAlign:"left", borderBottom:"1px solid rgba(0,220,255,0.1)"}}>
-              <th style={{padding:"12px 8px", color:"var(--text-muted)", fontSize: 11, fontWeight: 800, letterSpacing: "0.05em"}}>STUDENT</th>
-              <th style={{padding:"12px 8px", color:"var(--text-muted)", fontSize: 11, fontWeight: 800, letterSpacing: "0.05em"}}>R1 SCORE</th>
-              <th style={{padding:"12px 8px", color:"var(--text-muted)", fontSize: 11, fontWeight: 800, letterSpacing: "0.05em"}}>R1 TIME</th>
-              <th style={{padding:"12px 8px", color:"var(--text-muted)", fontSize: 11, fontWeight: 800, letterSpacing: "0.05em"}}>TOTAL TIME</th>
-              <th style={{padding:"12px 8px", color:"var(--text-muted)", fontSize: 11, fontWeight: 800, letterSpacing: "0.05em"}}>STATUS</th>
+              <th style={{padding:"12px 8px", color:"var(--text-muted)", fontSize: 12, fontWeight: 800, letterSpacing: "0.05em"}}>STUDENT</th>
+              <th style={{padding:"12px 8px", color:"var(--text-muted)", fontSize: 12, fontWeight: 800, letterSpacing: "0.05em"}}>R1 SCORE</th>
+              <th style={{padding:"12px 8px", color:"var(--text-muted)", fontSize: 12, fontWeight: 800, letterSpacing: "0.05em"}}>R1 TIME</th>
+              <th style={{padding:"12px 8px", color:"var(--text-muted)", fontSize: 12, fontWeight: 800, letterSpacing: "0.05em"}}>TOTAL TIME</th>
+              <th style={{padding:"12px 8px", color:"var(--text-muted)", fontSize: 12, fontWeight: 800, letterSpacing: "0.05em"}}>STATUS</th>
             </tr>
           </thead>
           <tbody>
@@ -697,7 +697,7 @@ function MarksView({ cfg }: { cfg: PyHuntConfig }) {
               <tr key={i} style={{ borderBottom:"1px solid rgba(255,255,255,0.03)" }}>
                 <td style={{padding:"12px 8px"}}>
                   <div style={{fontWeight:700}}>{s.student_name}</div>
-                  <div style={{fontSize:10, color: "#8ba3c7"}}>{s.student_usn}</div>
+                  <div style={{fontSize:12, color: "#8ba3c7"}}>{s.student_usn}</div>
                 </td>
                 <td style={{padding:"12px 8px"}}>
                   <span style={{...$.clueBadge, background:"rgba(0,220,255,0.05)", color:"#00dcff"}}>
@@ -914,16 +914,16 @@ function LiveStatusView({ cfg }: { cfg: PyHuntConfig }) {
         <table style={{width:"100%", borderCollapse:"collapse", color:"#c8daf0", fontSize:13}}>
           <thead>
             <tr style={{textAlign:"left", borderBottom:"1px solid rgba(0,220,255,0.1)"}}>
-              <th style={{padding:"12px 8px", color:"var(--text-muted)", fontSize: 11, fontWeight: 800, letterSpacing: "0.05em"}}>STUDENT NAME</th>
-              <th style={{padding:"12px 8px", color:"var(--text-muted)", fontSize: 11, fontWeight: 800, letterSpacing: "0.05em"}}>ROUND</th>
-              <th style={{padding:"12px 8px", color:"var(--text-muted)", fontSize: 11, fontWeight: 800, letterSpacing: "0.05em"}}>R1 SCORE</th>
-              <th style={{padding:"12px 8px", color:"var(--text-muted)", fontSize: 11, fontWeight: 800, letterSpacing: "0.05em"}}>R1 TIME</th>
-              <th style={{padding:"12px 8px", color:"var(--text-muted)", fontSize: 11, fontWeight: 800, letterSpacing: "0.05em"}}>ROUND STATUS</th>
-              <th style={{padding:"12px 8px", color:"var(--text-muted)", fontSize: 11, fontWeight: 800, letterSpacing: "0.05em"}}>WARNINGS</th>
-              <th style={{padding:"12px 8px", color:"var(--text-muted)", fontSize: 11, fontWeight: 800, letterSpacing: "0.05em"}}>LAST VIOLATION</th>
-              <th style={{padding:"12px 8px", color:"var(--text-muted)", fontSize: 11, fontWeight: 800, letterSpacing: "0.05em"}}>LAST ACTIVE</th>
-              <th style={{padding:"12px 8px", color:"var(--text-muted)", fontSize: 11, fontWeight: 800, letterSpacing: "0.05em"}}>STATUS</th>
-              <th style={{padding:"12px 8px", color:"var(--text-muted)", fontSize: 11, fontWeight: 800, letterSpacing: "0.05em", textAlign:"right"}}>ACTIONS</th>            </tr>
+              <th style={{padding:"12px 8px", color:"var(--text-muted)", fontSize: 13, fontWeight: 800, letterSpacing: "0.05em"}}>STUDENT NAME</th>
+              <th style={{padding:"12px 8px", color:"var(--text-muted)", fontSize: 13, fontWeight: 800, letterSpacing: "0.05em"}}>ROUND</th>
+              <th style={{padding:"12px 8px", color:"var(--text-muted)", fontSize: 13, fontWeight: 800, letterSpacing: "0.05em"}}>R1 SCORE</th>
+              <th style={{padding:"12px 8px", color:"var(--text-muted)", fontSize: 13, fontWeight: 800, letterSpacing: "0.05em"}}>R1 TIME</th>
+              <th style={{padding:"12px 8px", color:"var(--text-muted)", fontSize: 13, fontWeight: 800, letterSpacing: "0.05em"}}>ROUND STATUS</th>
+              <th style={{padding:"12px 8px", color:"var(--text-muted)", fontSize: 13, fontWeight: 800, letterSpacing: "0.05em"}}>WARNINGS</th>
+              <th style={{padding:"12px 8px", color:"var(--text-muted)", fontSize: 13, fontWeight: 800, letterSpacing: "0.05em"}}>LAST VIOLATION</th>
+              <th style={{padding:"12px 8px", color:"var(--text-muted)", fontSize: 13, fontWeight: 800, letterSpacing: "0.05em"}}>LAST ACTIVE</th>
+              <th style={{padding:"12px 8px", color:"var(--text-muted)", fontSize: 13, fontWeight: 800, letterSpacing: "0.05em"}}>STATUS</th>
+              <th style={{padding:"12px 8px", color:"var(--text-muted)", fontSize: 13, fontWeight: 800, letterSpacing: "0.05em", textAlign:"right"}}>ACTIONS</th>            </tr>
           </thead>
           <tbody>
             {students.map((s, i) => {
@@ -938,7 +938,7 @@ function LiveStatusView({ cfg }: { cfg: PyHuntConfig }) {
                 }}>
                     <td style={{padding:"12px 8px"}}>
                       <div style={{fontWeight:700}}>{s.student_name || "Unknown Name"}</div>
-                      <div style={{fontSize:10, color: "#8ba3c7", fontWeight: 700}}>{s.student_usn || s.student_id || "Anonymous"}</div>
+                      <div style={{fontSize:13, color: "#8ba3c7", fontWeight: 700}}>{s.student_usn || s.student_id || "Anonymous"}</div>
                     </td>
                   <td style={{padding:"12px 8px"}}>
                     <span style={{
@@ -954,12 +954,12 @@ function LiveStatusView({ cfg }: { cfg: PyHuntConfig }) {
                   <td style={{padding:"12px 8px", fontWeight: 700, color: "#10b981"}}>
                     {s.round1_score || "-"}
                   </td>
-                  <td style={{padding:"12px 8px", fontSize: 11, opacity: 0.8}}>
+                  <td style={{padding:"12px 8px", fontSize: 13, opacity: 0.8}}>
                     {s.round1_time || "-"}
                   </td>
                   <td style={{padding:"12px 8px"}}>
                     <span style={{
-                      padding: "4px 12px", borderRadius: 20, fontSize: 11, fontWeight: 800,
+                      padding: "4px 12px", borderRadius: 20, fontSize: 13, fontWeight: 800,
                       background: isTerminated ? "rgba(239, 68, 68, 0.1)" : (isFinished ? "rgba(16,185,129,0.1)" : "rgba(245,158,11,0.1)"),
                       color: isTerminated ? "#ef4444" : (isFinished ? "#10b981" : "#f59e0b"),
                       border: isTerminated ? "1px solid rgba(239, 68, 68, 0.2)" : (isFinished ? "1px solid rgba(16,185,129,0.2)" : "1px solid rgba(245,158,11,0.2)"),
@@ -972,7 +972,7 @@ function LiveStatusView({ cfg }: { cfg: PyHuntConfig }) {
                        {s.warnings || 0} / 3
                      </span>
                   </td>
-                  <td style={{padding:"12px 8px", fontSize: 11, color: "#f87171", fontWeight: 700}}>
+                  <td style={{padding:"12px 8px", fontSize: 13, color: "#f87171", fontWeight: 700}}>
                     {s.last_violation?.toUpperCase().replace(/_/g, ' ') || "-"}
                   </td>
                   <td style={{padding:"12px 8px", opacity:0.6}}>
@@ -982,7 +982,7 @@ function LiveStatusView({ cfg }: { cfg: PyHuntConfig }) {
                     <span style={{
                       padding: "2px 8px",
                       borderRadius: 4,
-                      fontSize: 10,
+                      fontSize: 13,
                       background: isTerminated || s.warnings >= 3 ? "rgba(239, 68, 68, 0.1)" : (isFinished ? "rgba(16,185,129,0.1)" : "rgba(0,220,255,0.1)"),
                       color: isTerminated || s.warnings >= 3 ? "#ef4444" : (isFinished ? "#10b981" : "#00dcff"),
                       border: isTerminated || s.warnings >= 3 ? "1px solid rgba(239, 68, 68, 0.2)" : (isFinished ? "1px solid rgba(16,185,129,0.2)" : "1px solid rgba(0,220,255,0.2)")
@@ -995,7 +995,7 @@ function LiveStatusView({ cfg }: { cfg: PyHuntConfig }) {
                       {s.turtle_image && (
                         <button 
                           onClick={() => setSelectedArt({ id: s.student_id, name: s.student_name, img: s.turtle_image })}
-                          style={{ ...$.btnEdit, padding: "4px 8px", fontSize: 10 }}
+                          style={{ ...$.btnEdit, padding: "4px 8px", fontSize: 13 }}
                         >View Art</button>
                       )}
                       {(s.round3_code || s.round3b_code || s.round4_code) && (
@@ -1012,16 +1012,16 @@ function LiveStatusView({ cfg }: { cfg: PyHuntConfig }) {
                             else if (s.round3b_code) setActiveCodeTab("r3b");
                             else setActiveCodeTab("r4");
                           }}
-                          style={{ ...$.btnAdd, padding: "4px 8px", fontSize: 10, borderColor: "rgba(0, 220, 255, 0.3)", color: "#00dcff", background: "rgba(0, 220, 255, 0.05)" }}
+                          style={{ ...$.btnAdd, padding: "4px 8px", fontSize: 13, borderColor: "rgba(0, 220, 255, 0.3)", color: "#00dcff", background: "rgba(0, 220, 255, 0.05)" }}
                         >View Code</button>
                       )}
                       <button 
                         onClick={() => resetProgress(s.student_id)}
-                        style={{ ...$.btnAdd, padding: "4px 8px", fontSize: 10, borderColor: "rgba(245, 158, 11, 0.3)", color: "#f59e0b", background: "rgba(245, 158, 11, 0.05)" }}
+                        style={{ ...$.btnAdd, padding: "4px 8px", fontSize: 13, borderColor: "rgba(245, 158, 11, 0.3)", color: "#f59e0b", background: "rgba(245, 158, 11, 0.05)" }}
                       >Reset</button>
                       <button 
                         onClick={() => removeStudent(s.student_id)}
-                        style={{ ...$.btnDel, padding: "4px 8px", fontSize: 10 }}
+                        style={{ ...$.btnDel, padding: "4px 8px", fontSize: 13 }}
                       >Remove</button>
                     </div>
                   </td>
@@ -1204,7 +1204,7 @@ function CodingProblemEditor({ cfg, setCfg, rk, rn, accentColor = "#00dcff", lab
       {/* Header */}
       <div style={{...$.cardTitle, color: accentColor, display:"flex", alignItems:"center", justifyContent:"space-between"}}>
         <span>Round {rn} — {label}</span>
-        <span style={{fontSize:10, color:"#3a5578", fontWeight:700, letterSpacing:1}}>IDE EDITOR</span>
+        <span style={{fontSize:13, color:"#3a5578", fontWeight:700, letterSpacing:1}}>IDE EDITOR</span>
       </div>
 
       {/* QUESTION / PROMPT */}
@@ -1233,7 +1233,7 @@ function CodingProblemEditor({ cfg, setCfg, rk, rn, accentColor = "#00dcff", lab
         <div style={{...$.cardTitle as any, color: accentColor, margin:0, fontSize:13, textTransform:"uppercase", letterSpacing:1}}>
           🧪 Test Cases (JSON Array)
         </div>
-        <div style={{fontSize:11, color:"#3a5578", marginBottom:10}}>
+        <div style={{fontSize:13, color:"#3a5578", marginBottom:10}}>
           Format: <code>{`[{"input": "...", "expected": "..."}]`}</code>
         </div>
       </div>
@@ -1242,7 +1242,7 @@ function CodingProblemEditor({ cfg, setCfg, rk, rn, accentColor = "#00dcff", lab
           ...$.ta,
           minHeight: 180,
           fontFamily: "'JetBrains Mono', monospace",
-          fontSize: 12,
+          fontSize: 13,
           background: "rgba(0,0,0,0.45)",
           borderColor: `${accentColor}66`,
           color: accentColor,
@@ -1259,7 +1259,7 @@ function CodingProblemEditor({ cfg, setCfg, rk, rn, accentColor = "#00dcff", lab
       {/* STARTER CODE */}
       <label htmlFor={`${rk}_starter`} style={{...$.lbl, display:"flex", alignItems:"center", justifyContent:"space-between", textTransform:"uppercase", letterSpacing:1}}>
         <span>🐍 Starter Code</span>
-        <span style={{fontSize:10, color:"#3a5578"}}>Python 3 · Tab = 4 spaces</span>
+        <span style={{fontSize:12, color:"#3a5578"}}>Python 3 · Tab = 4 spaces</span>
       </label>
       <textarea
         id={`${rk}_starter`}
@@ -1300,7 +1300,7 @@ function CodingProblemEditor({ cfg, setCfg, rk, rn, accentColor = "#00dcff", lab
 
       {/* Live Problem View (Student-Faced) */}
       <div style={{marginTop:32, padding:24, background:"rgba(0,0,0,0.3)", borderRadius:20, border:"1px solid rgba(255,255,255,0.05)", boxShadow:"0 10px 40px rgba(0,0,0,0.4)"}}>
-        <div style={{fontSize:10, fontWeight:900, color:accentColor, letterSpacing:2, marginBottom:16, opacity:0.6, textTransform:"uppercase"}}>
+        <div style={{fontSize:12, fontWeight:900, color:accentColor, letterSpacing:2, marginBottom:16, opacity:0.6, textTransform:"uppercase"}}>
           ✨ LIVE STUDENT PREVIEW
         </div>
         <h3 style={{fontSize:22, fontWeight:800, color:"#fff", marginBottom:12}}>{cfg[rk].title || "Untitled Problem"}</h3>
@@ -1317,13 +1317,13 @@ function CodingProblemEditor({ cfg, setCfg, rk, rn, accentColor = "#00dcff", lab
         
         {cfg[rk].targetOutput && (
           <div style={{marginBottom:24, padding:16, background:"rgba(255,255,255,0.03)", borderRadius:12, border:"1px solid rgba(255,255,255,0.05)"}}>
-            <div style={{fontSize:10, fontWeight:800, color:"rgba(255,255,255,0.3)", textTransform:"uppercase", marginBottom:8}}>Expected Output Structure</div>
+            <div style={{fontSize:12, fontWeight:800, color:"rgba(255,255,255,0.3)", textTransform:"uppercase", marginBottom:8}}>Expected Output Structure</div>
             <div style={{fontSize:13, color:accentColor, fontFamily:"'JetBrains Mono',monospace"}}>{cfg[rk].targetOutput}</div>
           </div>
         )}
 
         <div style={{marginBottom:24}}>
-          <div style={{fontSize:11, fontWeight:700, color:"rgba(255,255,255,0.4)", marginBottom:10, textTransform:"uppercase"}}>Starter Code</div>
+          <div style={{fontSize:12, fontWeight:700, color:"rgba(255,255,255,0.4)", marginBottom:10, textTransform:"uppercase"}}>Starter Code</div>
           <div style={{background:"#0d1117", borderRadius:12, padding:16, border:"1px solid rgba(255,255,255,0.1)"}}>
             <pre style={{margin:0, fontSize:12, fontFamily:"'JetBrains Mono',monospace", color:"#e2e8f0"}}>
               {cfg[rk].starterCode || "# No starter code"}
@@ -1332,17 +1332,17 @@ function CodingProblemEditor({ cfg, setCfg, rk, rn, accentColor = "#00dcff", lab
         </div>
 
         <div>
-          <div style={{fontSize:11, fontWeight:700, color:"rgba(255,255,255,0.4)", marginBottom:10, textTransform:"uppercase"}}>Verification Cases</div>
+          <div style={{fontSize:12, fontWeight:700, color:"rgba(255,255,255,0.4)", marginBottom:10, textTransform:"uppercase"}}>Verification Cases</div>
           <div style={{display:"flex", flexDirection:"column", gap:10}}>
             {cfg[rk].testCases.map((tc, idx) => (
               <div key={idx} style={{display:"flex", gap:12, alignItems:"center", background:"rgba(255,255,255,0.02)", padding:"10px 14px", borderRadius:10, border:"1px solid rgba(255,255,255,0.05)"}}>
-                <div style={{fontSize:10, fontWeight:900, color:accentColor, minWidth:20}}>#{idx+1}</div>
+                <div style={{fontSize:12, fontWeight:900, color:accentColor, minWidth:20}}>#{idx+1}</div>
                 <div style={{flex:1}}>
-                  <span style={{fontSize:10, color:"rgba(255,255,255,0.3)", marginRight:8}}>IN:</span>
+                  <span style={{fontSize:12, color:"rgba(255,255,255,0.3)", marginRight:8}}>IN:</span>
                   <code style={{fontSize:12, color:"#7adaa0"}}>{tc.input || "None"}</code>
                 </div>
                 <div style={{flex:1}}>
-                  <span style={{fontSize:10, color:"rgba(255,255,255,0.3)", marginRight:8}}>OUT:</span>
+                  <span style={{fontSize:12, color:"rgba(255,255,255,0.3)", marginRight:8}}>OUT:</span>
                   <code style={{fontSize:12, color:accentColor}}>{tc.expected || "None"}</code>
                 </div>
               </div>

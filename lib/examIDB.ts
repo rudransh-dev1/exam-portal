@@ -27,8 +27,21 @@ export interface TelemetryEvent {
   sessionId:   string;
 }
 
+export interface CodeSubmissionRecord {
+  sessionId:   string;
+  questionId:  string;
+  code:        string;
+  language:    string;
+  testResults: any[];
+  passedCount: number;
+  totalCount:  number;
+  isFinal:     boolean;
+  submittedAt: string;
+  dirty:       boolean;
+}
+
 const DB_NAME    = "exam-portal-idb";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 let _db: IDBDatabase | null = null;
 
@@ -46,6 +59,11 @@ function openDB(): Promise<IDBDatabase> {
       if (!db.objectStoreNames.contains("events")) {
         const s2 = db.createObjectStore("events", { keyPath: "eventId" });
         s2.createIndex("by_session", "sessionId");
+      }
+      if (!db.objectStoreNames.contains("code_submissions")) {
+        const s3 = db.createObjectStore("code_submissions", { keyPath: ["sessionId", "questionId"] });
+        s3.createIndex("by_session", "sessionId");
+        s3.createIndex("by_dirty",   ["sessionId", "dirty"]);
       }
       if (!db.objectStoreNames.contains("meta")) {
         db.createObjectStore("meta", { keyPath: "key" });
@@ -118,6 +136,31 @@ export async function getPendingEvents(sessionId: string, limit = 50): Promise<T
 export async function deleteEvents(eventIds: string[]): Promise<void> {
   const s = await tx("events", "readwrite");
   for (const id of eventIds) s.delete(id);
+}
+
+// ── Code Submissions ────────────────────────────────────────────────────────
+
+export async function saveCodeSubmission(record: CodeSubmissionRecord): Promise<void> {
+  const s = await tx("code_submissions", "readwrite");
+  await promisify(s.put(record));
+}
+
+export async function getDirtyCodeSubmissions(sessionId: string, limit = 50): Promise<CodeSubmissionRecord[]> {
+  const s     = await tx("code_submissions", "readonly");
+  const index = s.index("by_session");
+  const all   = await promisify<CodeSubmissionRecord[]>(index.getAll(sessionId));
+  return all.filter((r) => r.dirty).slice(0, limit);
+}
+
+export async function markCodeSubmissionsSynced(sessionId: string, questionIds: string[]): Promise<void> {
+  const s = await tx("code_submissions", "readwrite");
+  for (const qid of questionIds) {
+    const existing = await promisify<CodeSubmissionRecord | undefined>(s.get([sessionId, qid]));
+    if (existing) {
+      existing.dirty = false;
+      s.put(existing);
+    }
+  }
 }
 
 // ── Meta ──────────────────────────────────────────────────────────────────────

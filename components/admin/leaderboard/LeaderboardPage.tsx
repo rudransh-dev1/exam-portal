@@ -38,8 +38,16 @@ function pctColor(pct: number): string {
 
 const CROWNS = ["🥇", "🥈", "🥉"];
 
+const ACTION_BTN_BASE = {
+  padding: "6px 14px",
+  borderRadius: 8,
+  background: "transparent",
+  fontSize: 12,
+  cursor: "pointer",
+  fontWeight: 600 as const,
+};
+
 export default function LeaderboardPage() {
-  const [mounted, setMounted] = useState(false);
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatedAt, setUpdatedAt] = useState<string>("");
@@ -90,10 +98,6 @@ export default function LeaderboardPage() {
     document.body.removeChild(link);
   };
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
   const fetchLeaderboard = useCallback(async () => {
     try {
       const data = await adminFetch<{ entries: LeaderboardEntry[]; updated_at: string }>("/leaderboard/admin", {
@@ -143,8 +147,6 @@ export default function LeaderboardPage() {
   const top3 = filteredEntries.slice(0, 3);
   const rest = filteredEntries.slice(3);
 
-  if (!mounted) return null;
-
   return (
     <div className={styles.page}>
       <div className={styles.header}>
@@ -181,14 +183,9 @@ export default function LeaderboardPage() {
           <button
             onClick={handleExportCSV}
             style={{
-              padding: "6px 14px",
-              borderRadius: 8,
+              ...ACTION_BTN_BASE,
               border: "1px solid rgba(16,185,129,0.4)",
-              background: "transparent",
               color: "#10b981",
-              fontSize: 12,
-              cursor: "pointer",
-              fontWeight: 600,
               display: "flex",
               alignItems: "center",
               gap: 4
@@ -200,14 +197,9 @@ export default function LeaderboardPage() {
           <button
             onClick={handleDeleteAllLeaderboard}
             style={{
-              padding: "6px 14px",
-              borderRadius: 8,
+              ...ACTION_BTN_BASE,
               border: "1px solid " + (deleteAllCount > 0 ? "#f87171" : "rgba(248,113,113,0.4)"),
-              background: "transparent",
-              color: deleteAllCount > 0 ? "#f87171" : "#f87171",
-              fontSize: 12,
-              cursor: "pointer",
-              fontWeight: 600
+              color: "#f87171",
             }}
           >
             🗑️ Delete All {deleteAllCount > 0 ? `(${deleteAllCount}/3)` : ""}

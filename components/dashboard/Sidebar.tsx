@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, ReactNode } from "react";
 import styles from "./Sidebar.module.css";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface NavItem {
   id: string;
-  icon: string;
+  icon: ReactNode;
   label: string;
 }
 
@@ -34,7 +35,11 @@ export default function Sidebar({ items, activeItem, onItemClick, onLogout }: Si
 
       <aside className={`${styles.sidebar} ${isOpen ? styles.sidebarOpen : ""}`}>
         <div className={styles.logo}>
-          <div className={styles.logoIcon}>⚛</div>
+          <motion.div 
+            className={styles.logoIcon}
+            animate={{ rotate: 360 }}
+            transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+          >⚛</motion.div>
           <div className={styles.logoText}>
             <span className={styles.brand}>NEXUS</span>
             <span className={styles.sub}>Candidate Portal</span>
@@ -42,26 +47,54 @@ export default function Sidebar({ items, activeItem, onItemClick, onLogout }: Si
         </div>
         
         <nav className={styles.nav}>
-          {items.map((item) => (
-            <button
+          {items.map((item, idx) => (
+            <motion.button
               key={item.id}
               className={`${styles.navBtn} ${activeItem === item.id ? styles.navBtnActive : ""}`}
               onClick={() => handleItemClick(item.id)}
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: idx * 0.05 }}
+              whileHover={{ x: 4 }}
+              whileTap={{ scale: 0.98 }}
             >
               <span className={styles.navIcon}>{item.icon}</span>
               <span className={styles.navLabel}>{item.label}</span>
-              {activeItem === item.id && <span className={styles.navArrow}>›</span>}
-            </button>
+              <AnimatePresence>
+                {activeItem === item.id && (
+                  <motion.span 
+                    className={styles.navArrow}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 10 }}
+                  >›</motion.span>
+                )}
+              </AnimatePresence>
+            </motion.button>
           ))}
         </nav>
 
         <div className={styles.footer}>
-          <div className={styles.atomIcon}>⚛</div>
+          <motion.div 
+            className={styles.atomIcon}
+            animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.6, 0.3] }}
+            transition={{ duration: 4, repeat: Infinity }}
+          >⚛</motion.div>
           <button className={styles.signOut} onClick={onLogout}>Sign Out</button>
         </div>
       </aside>
       
-      {isOpen && <div className={styles.overlay} onClick={() => setIsOpen(false)} />}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div 
+            className={styles.overlay} 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setIsOpen(false)} 
+          />
+        )}
+      </AnimatePresence>
     </>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import styles from "./instructions.module.css";
 import { startExam } from "@/lib/api";
@@ -9,7 +9,7 @@ import Skeleton from "@/components/Skeleton";
 import { supabase } from "@/lib/supabase";
 
 export default function InstructionsPage() {
-  const router = useRouter();
+  const { replace, push, prefetch } = useRouter();
   const { enter: enterFullscreen } = useFullscreen();
   const [studentInfo, setStudentInfo] = useState<{
     name: string, 
@@ -19,7 +19,7 @@ export default function InstructionsPage() {
     totalQuestions: number
   } | null>(null);
   const [starting, setStarting] = useState(false);
-  const [isFullscreen, setIsFullscreen] = useState(false);
+  const isFullscreenRef = useRef(false);
   const [showSecureGate, setShowSecureGate] = useState(true);
   const [scheduledStart, setScheduledStart] = useState<Date | null>(null);
   const [countdown, setCountdown] = useState<number>(0);
@@ -29,7 +29,7 @@ export default function InstructionsPage() {
     // ── Authentication Check ──
     const token = sessionStorage.getItem("exam_token");
     if (!token) {
-      router.replace("/login");
+      replace("/login");
       return;
     }
 
@@ -60,7 +60,7 @@ export default function InstructionsPage() {
     return () => {
       window.removeEventListener("popstate", handlePopState);
     };
-  }, [router]);
+  }, [replace, prefetch]);
 
   useEffect(() => {
     fetchStatus();
@@ -83,6 +83,7 @@ export default function InstructionsPage() {
       .subscribe();
 
     return () => {
+      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, []);
@@ -161,7 +162,7 @@ export default function InstructionsPage() {
   useEffect(() => {
     const handleFsChange = () => {
       const fs = !!document.fullscreenElement;
-      setIsFullscreen(fs);
+      isFullscreenRef.current = fs;
       if (fs) setShowSecureGate(false);
     };
     document.addEventListener("fullscreenchange", handleFsChange);
@@ -219,7 +220,7 @@ export default function InstructionsPage() {
         sessionStorage.setItem("exam_student", JSON.stringify(parsed));
       }
 
-      router.push("/exam");
+      push("/exam");
     }).catch((err: any) => {
       console.error("Failed to start exam", err);
       
@@ -234,7 +235,7 @@ export default function InstructionsPage() {
         sessionStorage.removeItem("exam_student");
         sessionStorage.removeItem("exam_login_at");
         alert("Your session has expired. Please log in again.");
-        router.replace("/login");
+        replace("/login");
         return;
       }
       alert(msg || "Error starting exam. Please try again.");
@@ -246,7 +247,7 @@ export default function InstructionsPage() {
     sessionStorage.removeItem("exam_token");
     sessionStorage.removeItem("exam_student");
     sessionStorage.removeItem("exam_selected_title");
-    router.replace("/login");
+    replace("/login");
   };
 
   if (!studentInfo) {
@@ -255,7 +256,7 @@ export default function InstructionsPage() {
         <div className="page-skeleton-wrap">
           <Skeleton height={40} width="60%" borderRadius={12} />
           <Skeleton height={300} borderRadius={24} />
-          <div style={{ display: "flex", gap: 16, marginTop: 12 }}>
+          <div className={styles.skeletonRow}>
             <Skeleton height={50} width={150} borderRadius={12} />
             <Skeleton height={50} width={150} borderRadius={12} />
           </div>
@@ -268,32 +269,21 @@ export default function InstructionsPage() {
     <div className={styles.wrapper}>
       {/* ── SECURE MODE GATE — shown until fullscreen is entered ── */}
       {showSecureGate && (
-        <div style={{
-          position: "fixed", inset: 0, zIndex: 9999,
-          background: "linear-gradient(135deg, #060b1a 0%, #0a1020 100%)",
-          display: "flex", alignItems: "center", justifyContent: "center",
-        }}>
-          <div style={{
-            background: "rgba(10,15,30,0.97)", border: "1px solid rgba(40,215,214,0.3)",
-            boxShadow: "0 20px 60px rgba(0,0,0,0.7)", padding: "48px 40px",
-            borderRadius: "24px", textAlign: "center", maxWidth: 480, width: "90%",
-          }}>
-            <div style={{ fontSize: 56, marginBottom: 20 }}>🛡️</div>
-            <h2 style={{ fontSize: "24px", fontWeight: 900, color: "#fff", marginBottom: 12 }}>
+        <div className={styles.secureGateOverlay}>
+          <div className={styles.secureGateCard}>
+            <div className={styles.secureGateIcon}>🛡️</div>
+            <h2 className={styles.secureGateHeading}>
               Secure Environment Required
             </h2>
-            <p style={{ color: "rgba(255,255,255,0.6)", marginBottom: 36, fontSize: 15, lineHeight: 1.6 }}>
+            <p className={styles.secureGateDesc}>
               This exam requires mandatory full-screen mode to ensure assessment integrity.
             </p>
-            <div style={{ display: "flex", gap: 12 }}>
-              <button
-                onClick={handleEnterSecureMode}
-                style={{ flex: 1, padding: "16px", borderRadius: 16, border: "none", background: "linear-gradient(135deg, #28D7D6, #0066cc)", color: "#000", fontWeight: 900, cursor: "pointer", fontSize: 16, boxShadow: "0 8px 25px rgba(40,215,214,0.3)" }}
-              >
+            <div className={styles.secureGateBtnWrap}>
+              <button onClick={handleEnterSecureMode} className={styles.secureGateBtn}>
                 ENTER SECURE MODE →
               </button>
             </div>
-            <div style={{ marginTop: 24, fontSize: 11, color: "rgba(255,255,255,0.3)", letterSpacing: "0.06em", fontWeight: 700 }}>
+            <div className={styles.secureGateFooter}>
               VIOLATIONS ARE RECORDED IN REAL-TIME
             </div>
           </div>
@@ -358,10 +348,9 @@ export default function InstructionsPage() {
               </div>
               <div className={styles.detailItem}>
                 <svg className={styles.detailIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
-                  <circle cx="12" cy="13" r="4"></circle>
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
                 </svg>
-                Proctoring: Enabled
+                Secure Proctoring: Active
               </div>
             </div>
           </div>
@@ -397,11 +386,7 @@ export default function InstructionsPage() {
           <div className={styles.actionArea}>
             <div style={{ flex: 1 }}>
               {countdown > 0 && (
-                <div style={{ 
-                  color: "#28D7D6", fontWeight: 700, fontSize: "14px", 
-                  display: "flex", alignItems: "center", gap: 8,
-                  background: "rgba(40,215,214,0.1)", padding: "8px 16px", borderRadius: "12px"
-                }}>
+                <div className={styles.countdownBox}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                     <circle cx="12" cy="12" r="10"></circle>
                     <polyline points="12 6 12 12 16 14"></polyline>
@@ -410,7 +395,7 @@ export default function InstructionsPage() {
                 </div>
               )}
               {!examActive && countdown <= 0 && (
-                <div style={{ color: "#ff4d4d", fontSize: "13px", fontWeight: 600 }}>
+                <div className={styles.deactivatedText}>
                   Exam is currently deactivated by administrator.
                 </div>
               )}
@@ -421,9 +406,9 @@ export default function InstructionsPage() {
               disabled={starting || countdown > 0 || !examActive}
             >
                {starting ? (
-                <div style={{ position: "relative", width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                   <div className="skeleton" style={{ position: "absolute", inset: 0, opacity: 0.2, borderRadius: "12px" }} />
-                   <span>Initializing...</span>
+                <div className={styles.initializingWrap}>
+                   <div className={`skeleton ${styles.initializingSkeleton}`} />
+                   <span>Initializing…</span>
                 </div>
               ) : (
                 <>

@@ -3,6 +3,39 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
+const TEXTAREA_STYLE = {
+  width: "100%",
+  background: "rgba(0,0,0,0.3)",
+  border: "1px solid rgba(255,255,255,0.1)",
+  borderRadius: 12,
+  padding: 12,
+  color: "#fff",
+  fontSize: 14,
+  outline: "none",
+  minHeight: 80,
+};
+
+const BUTTON_BASE_STYLE = {
+  flex: 1,
+  padding: "12px 24px",
+  border: "none",
+  borderRadius: 12,
+  color: "#fff",
+  fontWeight: 700 as const,
+};
+
+const PROCTOR_BTN_STYLE = {
+  ...BUTTON_BASE_STYLE,
+  background: "linear-gradient(135deg, #8b5cf6, #6366f1)",
+  boxShadow: "0 4px 15px rgba(139, 92, 246, 0.3)",
+};
+
+const CODE_BTN_STYLE = {
+  ...BUTTON_BASE_STYLE,
+  background: "linear-gradient(135deg, #10b981, #059669)",
+  boxShadow: "0 4px 15px rgba(16, 185, 129, 0.3)",
+};
+
 export default function AITestTool() {
   const [prompt, setPrompt] = useState("Write a Python function that returns the square of a number.");
   const [response, setResponse] = useState("");
@@ -83,20 +116,10 @@ export default function AITestTool() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        <label htmlFor="ai-prompt" style={{ fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,0.6)", textTransform: "uppercase" }}>Test Prompt (for Proctor)</label>
+        <label htmlFor="ai-prompt" style={{ fontSize: 13, fontWeight: 700, color: "rgba(255,255,255,0.6)", textTransform: "uppercase" }}>Test Prompt (for Proctor)</label>
         <textarea
           id="ai-prompt"
-          style={{
-            width: "100%",
-            background: "rgba(0,0,0,0.3)",
-            border: "1px solid rgba(255,255,255,0.1)",
-            borderRadius: 12,
-            padding: 12,
-            color: "#fff",
-            fontSize: 14,
-            outline: "none",
-            minHeight: 80,
-          }}
+          style={TEXTAREA_STYLE}
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
         />
@@ -107,16 +130,9 @@ export default function AITestTool() {
           onClick={testProctor}
           disabled={loading}
           style={{
-            flex: 1,
-            padding: "12px 24px",
-            background: "linear-gradient(135deg, #8b5cf6, #6366f1)",
-            border: "none",
-            borderRadius: 12,
-            color: "#fff",
-            fontWeight: 700,
+            ...PROCTOR_BTN_STYLE,
             cursor: loading ? "not-allowed" : "pointer",
             opacity: loading ? 0.6 : 1,
-            boxShadow: "0 4px 15px rgba(139, 92, 246, 0.3)",
           }}
         >
           {loading ? "⟳ Testing..." : "🧠 Test Proctor AI"}
@@ -125,16 +141,9 @@ export default function AITestTool() {
           onClick={testCodeChecker}
           disabled={loading}
           style={{
-            flex: 1,
-            padding: "12px 24px",
-            background: "linear-gradient(135deg, #10b981, #059669)",
-            border: "none",
-            borderRadius: 12,
-            color: "#fff",
-            fontWeight: 700,
+            ...CODE_BTN_STYLE,
             cursor: loading ? "not-allowed" : "pointer",
             opacity: loading ? 0.6 : 1,
-            boxShadow: "0 4px 15px rgba(16, 185, 129, 0.3)",
           }}
         >
           {loading ? "⟳ Testing..." : "🐍 Test Code Checker"}
@@ -154,11 +163,11 @@ export default function AITestTool() {
             }}
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-              <div style={{ fontSize: 11, fontWeight: 800, color: error ? "#f87171" : "#34d399", textTransform: "uppercase" }}>
+              <div style={{ fontSize: 13, fontWeight: 800, color: error ? "#f87171" : "#34d399", textTransform: "uppercase" }}>
                 {error ? "❌ Test Failed" : "✅ Success — AI Response"}
               </div>
               {latency !== null && (
-                <div style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.5)" }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "rgba(255,255,255,0.5)" }}>
                   {latency}ms
                 </div>
               )}

@@ -29,6 +29,19 @@ from core.config import get_settings
 
 logger = logging.getLogger("examguard.ingest")
 
+
+def normalize_category(cat: Optional[str]) -> str:
+    if not cat:
+        return "Others"
+    cat_lower = cat.lower().strip()
+    if any(keyword in cat_lower for keyword in ["apti", "aptitued", "aptitude", "quant"]):
+        return "Aptitude"
+    if any(keyword in cat_lower for keyword in ["prog", "programming", "code"]):
+        return "Programming"
+    if any(keyword in cat_lower for keyword in ["event", "events"]):
+        return "Events"
+    return "Others"
+
 from core.question_cache import invalidate_all, invalidate_exam
 
 router = APIRouter(prefix="/admin/ingest", tags=["ingest"])
@@ -705,7 +718,7 @@ async def commit_questions(
             "branch": q.branch,
             "order_index": q.order_index if q.order_index > 0 else i,
             "exam_name": safe_exam_name,
-            "category": request.category or "Others",
+            "category": normalize_category(request.category),
             "image_url": getattr(q, "image_url", None),
             "audio_url": getattr(q, "audio_url", None),
             "question_type": getattr(q, "question_type", "mcq") or "mcq",
@@ -760,7 +773,7 @@ async def commit_questions(
                 "total_marks": total_marks,
                 "duration_minutes": duration,
                 "is_active": True,
-                "category": request.category or "Others",
+                "category": normalize_category(request.category),
                 "enable_schedule": request.enable_schedule or False,
                 "schedule_start_date": request.schedule_start_date,
                 "schedule_start_time": request.schedule_start_time,

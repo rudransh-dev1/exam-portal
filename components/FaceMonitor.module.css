@@ -1,0 +1,28 @@
+.canvas {
+  position: fixed;
+  top: 8px;
+  right: 8px;
+  width: 100px;
+  height: 75px;
+  border-radius: 8px;
+  opacity: 0.6;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+.placeholder {
+  position: fixed;
+  top: 8px;
+  right: 8px;
+  width: 100px;
+  height: 75px;
+  background: #222;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #888;
+  font-size: 12px;
+  z-index: 9999;
+  pointer-events: none;
+}

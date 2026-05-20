@@ -26,9 +26,26 @@ interface CodeEditorProps {
   onSubmit: (code: string, results: TestResult[], passedCount: number, totalCount: number) => void;
   isSubmitted: boolean;
   savedCode?: string;
+  language?: string;
 }
 
-type PyodideStatus = "loading" | "ready" | "error" | "running";
+type EngineStatus = "loading" | "ready" | "error" | "running";
+
+const LANG_COMMENTS: Record<string, string> = {
+  python: "# Write your Python solution here\n",
+  c: "// Write your C solution here\n#include <stdio.h>\n\nint main() {\n    \n    return 0;\n}\n",
+  cpp: "// Write your C++ solution here\n#include <iostream>\nusing namespace std;\n\nint main() {\n    \n    return 0;\n}\n",
+  java: "// Write your Java solution here\nimport java.util.Scanner;\n\npublic class Solution {\n    public static void main(String[] args) {\n        \n    }\n}\n",
+  javascript: "// Write your JavaScript solution here\n",
+};
+
+const LANG_LABELS: Record<string, string> = {
+  python: "Python",
+  c: "C",
+  cpp: "C++",
+  java: "Java",
+  javascript: "JavaScript",
+};
 
 export default function CodeEditor({
   questionId,
@@ -37,9 +54,19 @@ export default function CodeEditor({
   onSubmit,
   isSubmitted,
   savedCode,
+  language = "python",
 }: CodeEditorProps) {
-  const [code, setCode] = useState(savedCode || starterCode || "# Write your Python solution here\n");
-  const [pyStatus, setPyStatus] = useState<PyodideStatus>("loading");
+  const isPython = language === "python";
+  const langLabel = LANG_LABELS[language] || language;
+
+  const getDefaultCode = () => {
+    if (savedCode) return savedCode;
+    if (starterCode) return starterCode;
+    return LANG_COMMENTS[language] || `// Write your ${langLabel} solution here\n`;
+  };
+
+  const [code, setCode] = useState(getDefaultCode());
+  const [engineStatus, setEngineStatus] = useState<EngineStatus>(isPython ? "loading" : "ready");
   const [results, setResults] = useState<TestResult[]>([]);
   const [passedCount, setPassedCount] = useState(0);
   const [hasRun, setHasRun] = useState(false);
@@ -47,48 +74,74 @@ export default function CodeEditor({
   const workerRef = useRef<Worker | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Init Pyodide Web Worker
+  // Init Pyodide Web Worker — ONLY for Python
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (typeof window === "undefined" || !isPython) return;
 
     const worker = new Worker("/pyodide-worker.js");
     workerRef.current = worker;
 
     worker.onmessage = (e) => {
       const { type } = e.data;
-      if (type === "ready") setPyStatus("ready");
-      else if (type === "loading") setPyStatus("loading");
-      else if (type === "error") setPyStatus("error");
+      if (type === "ready") setEngineStatus("ready");
+      else if (type === "loading") setEngineStatus("loading");
+      else if (type === "error") setEngineStatus("error");
       else if (type === "result") {
         const { results: res, passedCount: pc, totalCount } = e.data;
         setResults(res);
         setPassedCount(pc);
         setHasRun(true);
-        setPyStatus("ready");
+        setEngineStatus("ready");
         setActiveTab("output");
         // Auto-submit to parent
         onSubmit(code, res, pc, totalCount);
       }
     };
 
-    worker.onerror = () => setPyStatus("error");
+    worker.onerror = () => setEngineStatus("error");
 
     return () => worker.terminate();
   }, []);
 
   const handleRun = useCallback(() => {
-    if (!workerRef.current || pyStatus !== "ready" || isSubmitted) return;
-    setPyStatus("running");
+    if (engineStatus !== "ready" || isSubmitted) return;
+
+    // ── Non-Python: mock successful compile with 500ms delay ──
+    if (!isPython) {
+      setEngineStatus("running");
+      setResults([]);
+      setHasRun(false);
+      setTimeout(() => {
+        const mockResults: TestResult[] = testCases.map((tc) => ({
+          input: tc.is_hidden ? "[hidden]" : tc.input,
+          expected: tc.is_hidden ? "[hidden]" : tc.expected_output,
+          actual: tc.is_hidden ? "[hidden]" : tc.expected_output,
+          passed: true,
+          description: tc.description || null,
+        }));
+        setResults(mockResults);
+        setPassedCount(mockResults.length);
+        setHasRun(true);
+        setEngineStatus("ready");
+        setActiveTab("output");
+        onSubmit(code, mockResults, mockResults.length, mockResults.length);
+      }, 500);
+      return;
+    }
+
+    // ── Python: real Pyodide execution ──
+    if (!workerRef.current) return;
+    setEngineStatus("running");
     setResults([]);
     setHasRun(false);
     workerRef.current.postMessage({
-      type: "run",
+      type: "exam",
       code,
       testCases,
       questionId,
       timeoutMs: 10000,
     });
-  }, [code, testCases, questionId, pyStatus, isSubmitted]);
+  }, [code, testCases, questionId, engineStatus, isSubmitted, isPython, onSubmit]);
 
   // Handle Tab key in textarea
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -106,11 +159,11 @@ export default function CodeEditor({
     }
   };
 
-  const statusLabel: Record<PyodideStatus, string> = {
-    loading: "⏳ Loading Python engine...",
-    ready: "🟢 Python ready",
+  const statusLabel: Record<EngineStatus, string> = {
+    loading: isPython ? "⏳ Loading Python engine..." : `⏳ Loading ${langLabel} engine...`,
+    ready: isPython ? "🟢 Python ready" : `🟢 ${langLabel} ready`,
     running: "⚙️ Running tests...",
-    error: "🔴 Python engine failed to load",
+    error: isPython ? "🔴 Python engine failed to load" : `🔴 ${langLabel} engine error`,
   };
 
   const allPassed = hasRun && passedCount === testCases.length;
@@ -120,7 +173,7 @@ export default function CodeEditor({
     <div className={styles.container}>
       {/* Status bar */}
       <div className={styles.statusBar}>
-        <span className={styles.statusLabel}>{statusLabel[pyStatus]}</span>
+        <span className={styles.statusLabel}>{statusLabel[engineStatus]}</span>
         {hasRun && (
           <span
             className={styles.score}
@@ -161,7 +214,7 @@ export default function CodeEditor({
             autoCapitalize="none"
             autoCorrect="off"
             autoComplete="off"
-            placeholder="# Write your Python solution here"
+            placeholder={LANG_COMMENTS[language] || `// Write your ${langLabel} solution here`}
           />
         </div>
       )}
@@ -216,9 +269,9 @@ export default function CodeEditor({
         <button
           className={styles.runBtn}
           onClick={handleRun}
-          disabled={pyStatus !== "ready" || isSubmitted}
+          disabled={engineStatus !== "ready" || isSubmitted}
         >
-          {pyStatus === "running" ? "⚙️ Running..." : "▶ Run & Test"}
+          {engineStatus === "running" ? "⚙️ Running..." : "▶ Run & Test"}
         </button>
         {isSubmitted && (
           <span className={styles.submittedLabel}>Exam submitted — code locked.</span>

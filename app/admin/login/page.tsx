@@ -2,11 +2,12 @@
 export const dynamic = "force-dynamic";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
+import { LazyMotion, domAnimation, m } from "framer-motion";
 import Background from "@/components/dashboard/Background";
+import s from "./login.module.css";
 
 export default function AdminLoginPage() {
-  const router = useRouter();
+  const { push } = useRouter();
   const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
   const [error, setError] = useState("");
@@ -29,7 +30,7 @@ export default function AdminLoginPage() {
       const d = await r.json();
       sessionStorage.setItem("examguard_admin_jwt", d.access_token);
       sessionStorage.setItem("examguard_admin_auth", "true");
-      router.push("/admin");
+      push("/admin");
     } catch (err: unknown) {
       setError(String(err));
     } finally {
@@ -38,127 +39,80 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <div style={{ minHeight: "100vh", position: "relative", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-primary)" }}>
+    <LazyMotion features={domAnimation}>
+    <div className={s.page}>
       <Background />
       
-      <motion.div 
+      <m.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        style={{
-          background: "var(--panel-glass)",
-          backdropFilter: "blur(20px)",
-          border: "1px solid var(--rim-metal)",
-          borderRadius: "24px",
-          padding: "48px 40px",
-          width: "100%",
-          maxWidth: "400px",
-          boxShadow: "var(--nexus-shadow-glass)",
-          zIndex: 10,
-          position: "relative",
-        }}
+        className={s.card}
       >
-        <div style={{ textAlign: "center", marginBottom: "32px" }}>
-          <div style={{ fontSize: "48px", marginBottom: "16px" }}>⚡</div>
-          <h1 style={{ fontSize: "28px", fontWeight: 800, letterSpacing: "-0.03em", margin: "0 0 8px 0" }}>
+        <div className={s.header}>
+          <div className={s.headerIcon}>⚡</div>
+          <h1 className={s.headerTitle}>
             EXAM Admin
           </h1>
-          <p style={{ color: "var(--accent-cool)", fontSize: "14px", opacity: 0.8, margin: 0 }}>
+          <p className={s.headerSubtitle}>
             Control Node — Staff Authorization
           </p>
         </div>
 
-        <form onSubmit={login} style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+        <form onSubmit={login} className={s.form}>
           <div>
-            <label style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px", opacity: 0.6, display: "block", marginBottom: "8px" }}>
+            <label htmlFor="admin-email" className={s.label}>
               Administrator Email
             </label>
             <input
+              id="admin-email"
               type="email"
               value={email}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
               placeholder="admin@nexus.local"
               required
-              style={{
-                width: "100%",
-                padding: "12px 16px",
-                borderRadius: "12px",
-                border: "1px solid var(--rim-metal)",
-                background: "rgba(255, 255, 255, 0.03)",
-                color: "var(--text-primary)",
-                fontSize: "14px",
-                outline: "none",
-                transition: "all 0.2s ease",
-              }}
+              className={s.input}
             />
           </div>
 
           <div>
-            <label style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px", opacity: 0.6, display: "block", marginBottom: "8px" }}>
+            <label htmlFor="admin-pass" className={s.label}>
               Access Key
             </label>
             <input
+              id="admin-pass"
               type="password"
               value={pass}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPass(e.target.value)}
               placeholder="••••••••••••"
               required
-              style={{
-                width: "100%",
-                padding: "12px 16px",
-                borderRadius: "12px",
-                border: "1px solid var(--rim-metal)",
-                background: "rgba(255, 255, 255, 0.03)",
-                color: "var(--text-primary)",
-                fontSize: "14px",
-                outline: "none",
-                transition: "all 0.2s ease",
-              }}
+              className={s.input}
             />
           </div>
 
           {error && (
-            <motion.div 
+            <m.div 
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
-              style={{
-                background: "rgba(239, 68, 68, 0.1)",
-                border: "1px solid rgba(239, 68, 68, 0.2)",
-                borderRadius: "10px",
-                padding: "12px",
-                color: "#f87171",
-                fontSize: "13px",
-                textAlign: "center",
-              }}
+              className={s.error}
             >
               {error}
-            </motion.div>
+            </m.div>
           )}
 
           <button
             type="submit"
             disabled={loading}
-            style={{
-              padding: "14px",
-              borderRadius: "12px",
-              border: "none",
-              background: loading ? "var(--rim-metal)" : "var(--accent-warm-grad)",
-              color: "#fff",
-              fontWeight: 700,
-              fontSize: "16px",
-              cursor: loading ? "not-allowed" : "pointer",
-              boxShadow: loading ? "none" : "0 4px 15px rgba(255, 154, 76, 0.2)",
-              marginTop: "8px",
-              transition: "all 0.3s ease",
-            }}
+            className={s.submitBtn}
           >
             {loading ? "Authorizing..." : "Initialize Access"}
           </button>
         </form>
 
-        <p style={{ textAlign: "center", color: "var(--text-primary)", opacity: 0.4, fontSize: "11px", marginTop: "24px" }}>
+        <p className={s.footer}>
           NEXUS Orbital Command · Secure Environment
         </p>
-      </motion.div>
+      </m.div>
     </div>
+    </LazyMotion>
   );
 }

@@ -637,3 +637,201 @@ select.input option {
     grid-template-columns: 1fr;
   }
 }
+
+/* ── Hero Stat Cards ────────────────────────────────────── */
+.heroGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  padding: 20px 24px 0;
+}
+
+.statCard {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 22px 24px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  box-shadow: var(--shadow-card);
+}
+
+.statIcon {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.statValue {
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--text-primary);
+  line-height: 1;
+}
+
+.statSub {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-left: 8px;
+}
+
+.statLabel {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+/* ── Export Button & Dropdown ─────────────────────────────── */
+.exportBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 18px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid rgba(139,92,246,0.35);
+  background: rgba(139,92,246,0.1);
+  color: #a78bfa;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.exportBtn:disabled {
+  cursor: not-allowed;
+}
+
+.exportBtnDone {
+  background: rgba(16,185,129,0.12);
+  color: #34d399;
+}
+
+.exportShimmer {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(139,92,246,0.25), transparent);
+  background-size: 200% 100%;
+  animation: shimmerExport 1s linear infinite;
+}
+
+.exportMenu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 240px;
+  background: rgba(8, 12, 24, 0.98);
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+  padding: 8px;
+  z-index: 100;
+  overflow: hidden;
+}
+
+.exportMenuTitle {
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.5);
+  padding: 4px 8px 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.exportMenuItem {
+  width: 100%;
+  text-align: left;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  color: var(--text-secondary);
+  transition: background 0.15s ease;
+}
+
+.exportMenuItem:hover {
+  background: rgba(255,255,255,0.06);
+  color: var(--text-primary);
+}
+
+.exportMenuDivider {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 0;
+}
+
+.exportMenuScroll {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.exportMenuEmpty {
+  padding: 12px;
+  text-align: center;
+  font-size: 12px;
+  color: rgba(255,255,255,0.4);
+}
+
+.exportMenuIcon {
+  opacity: 0.6;
+}
+
+.exportMenuLabel {
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.exportMenuNameLabel {
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.errorHint {
+  font-size: 11px;
+  color: #f87171;
+}
+
+.btnIcon {
+  font-size: 16px;
+}
+
+.posRel {
+  position: relative;
+}
+
+.colEnd {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+@keyframes shimmerExport {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@media (max-width: 768px) {
+  .heroGrid {
+    grid-template-columns: 1fr;
+  }
+}
+

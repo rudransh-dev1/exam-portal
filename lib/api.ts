@@ -75,6 +75,7 @@ export interface Question {
   starter_code?: string;
   test_cases?: TestCase[];
   category?: string;
+  language?: string;
 }
 
 export interface AdminQuestion extends Question {
@@ -95,6 +96,30 @@ export interface AdminStudent {
   last_active: string | null;
   submitted_at: string | null;
   password?: string;
+}
+
+export interface QuizSession {
+  id: string;
+  exam_id: string;
+  category: string;
+  status: string;
+  started_at: string;
+  completed_at?: string;
+  score: number;
+  total_marks: number;
+  metadata: any;
+  exam_title?: string;
+}
+
+export interface ExamResult {
+  id?: string;
+  exam_title: string;
+  score: number;
+  total_marks: number;
+  percentage: number;
+  submitted_at: string;
+  category: string;
+  status?: string;
 }
 
 export interface BranchExamSummary {
@@ -503,6 +528,16 @@ export async function editAdminFolderBranch(folderName: string, branches: string
   });
 }
 
+export async function editAdminFolderCategory(folderName: string, category: string): Promise<void> {
+  return adminFetch<void>(`/admin/folders/${encodeURIComponent(folderName)}/category`, { 
+    method: "PATCH", 
+    body: JSON.stringify({ 
+      new_category: category 
+    }) 
+  });
+}
+
+
 export async function uploadQuestionImage(file: File, questionId?: string): Promise<{ url: string; public_id?: string; image_url?: string }> {
   // Step 1: Get signed upload params from our backend
   const signRes = await fetch(`${API_BASE}/admin/sign-upload`, {
@@ -565,6 +600,12 @@ export async function uploadQuestionImage(file: File, questionId?: string): Prom
 
 export async function fetchBranchExamSummary(): Promise<BranchExamSummary[]> {
   return adminFetch<BranchExamSummary[]>("/admin/branch-summary");
+}
+
+export async function fetchExamHistory(category?: string): Promise<ExamResult[]> {
+  const query = category ? `?category=${encodeURIComponent(category)}` : "";
+  const res = await apiFetch<{ results: ExamResult[] }>(`/exam/history${query}`);
+  return res.results;
 }
 
 export async function startExam(examTitle: string): Promise<{ started_at: string; status: string }> {

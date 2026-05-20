@@ -1,6 +1,7 @@
 from fastapi.responses import Response
 from fastapi import APIRouter, HTTPException, status, Depends, BackgroundTasks
 from datetime import datetime, timezone
+import json
 
 from core.question_cache import (
     get_cached_questions, set_cached_questions,
@@ -9,12 +10,14 @@ from core.question_cache import (
 from models.schemas import (
     QuestionsResponse, QuestionOut, TestCaseOut,
     SaveAnswerRequest, SaveAnswerResponse,
+    BatchSaveRequest, BatchSaveResponse,
     SubmitExamRequest, SubmitExamResponse,
     StartExamResponse,
-    BatchSaveRequest, BatchSaveResponse,
     BatchEventsRequest, BatchEventsResponse,
     CodeSubmitRequest, CodeSubmitResponse,
+    UnifiedSyncRequest, UnifiedSyncResponse, ExamConfig, StudentStatus, PulseRequest
 )
+from core.redis_client import get_redis
 from core.security import get_current_student
 from db.supabase_client import get_supabase
 
@@ -54,6 +57,15 @@ def _check_exam_active(title: str):
 
 def update_last_active(student_id: str):
     """Background task to update student's last active timestamp."""
+    # 1. Update Redis (High frequency, ephemeral)
+    redis = get_redis()
+    if redis:
+        try:
+            redis.set(f"active:{student_id}", "true", ex=60)
+        except Exception:
+            pass
+
+    # 2. Update Supabase (Persisted, less frequent is fine but keeping it for now)
     db = get_supabase()
     db.table("exam_status").update(
         {"last_active": datetime.now(timezone.utc).isoformat()}
@@ -77,18 +89,56 @@ def get_exam_status(title: str = None, current: dict = Depends(get_current_stude
 
 
 @router.get("/history")
-def get_exam_history(current: dict = Depends(get_current_student)):
+def get_exam_history(category: str = None, current: dict = Depends(get_current_student)):
     """
     Returns the student's past exam results.
+    Supports optional category filtering (Aptitude, Programming, Events).
     """
     db = get_supabase()
     student_id = current["student_id"]
+    user_id = current.get("user_id")
+    
+    results = []
     try:
-        result = db.table("exam_results").select("*").eq("student_id", student_id).order("submitted_at", desc=True).execute()
-        return {"results": result.data or []}
+        # 1. Try fetching from new quiz_sessions table if it exists
+        query = db.table("quiz_sessions").select("*, exams(title)").eq("user_id", user_id).order("completed_at", desc=True)
+        if category:
+            query = query.eq("category", category)
+        
+        session_res = query.execute()
+        for session in (session_res.data or []):
+            results.append({
+                "id": session["id"],
+                "exam_title": session.get("exams", {}).get("title") or "Unknown Exam",
+                "score": session["score"],
+                "total_marks": session["total_marks"],
+                "percentage": round(session["score"] / session["total_marks"] * 100, 1) if session["total_marks"] else 0,
+                "submitted_at": session["completed_at"],
+                "category": session["category"],
+                "status": session["status"]
+            })
+            
     except Exception as e:
-        print(f"[EXAM] History fetch error: {e}")
-        return {"results": []}
+        print(f"[EXAM] quiz_sessions fetch failed (likely migration pending): {e}")
+
+    # 2. Fetch from legacy exam_results (merging or fallback)
+    try:
+        legacy_query = db.table("exam_results").select("*").eq("student_id", student_id).order("submitted_at", desc=True)
+        if category:
+            legacy_query = legacy_query.eq("category", category)
+        
+        legacy_res = legacy_query.execute()
+        # Only add legacy results if they aren't already represented by a new session
+        # (Simple heuristic: check by title + time if needed, but for now just append)
+        existing_titles = {r["exam_title"] for r in results}
+        for r in (legacy_res.data or []):
+            if r["exam_title"] not in existing_titles:
+                results.append(r)
+                
+    except Exception as e:
+        print(f"[EXAM] Legacy history fetch error: {e}")
+
+    return {"results": results}
 
 
 @router.delete("/history/{result_id}")
@@ -166,16 +216,16 @@ def _fetch_questions_from_db(title: str, branch: str) -> list:
         print(f"[EXAM] Branch fallback for title='{title}' branch='{branch}'")
         filtered = [q for q in all_questions if exam_matches(q)]
 
-    # Attach code_questions data
-    code_q_ids = [q["id"] for q in filtered if q.get("question_type") == "code"]
+    # Attach code_questions data (DISABLED)
+    # code_q_ids = [q["id"] for q in filtered if q.get("question_type") == "code"]
     code_q_map: dict = {}
-    if code_q_ids:
-        try:
-            cq_result = db.table("code_questions").select("*").in_("question_id", code_q_ids).execute()
-            for cq in (cq_result.data or []):
-                code_q_map[cq["question_id"]] = cq
-        except Exception as e:
-            print(f"[EXAM] code_questions fetch error: {e}")
+    # if code_q_ids:
+    #     try:
+    #         cq_result = db.table("code_questions").select("*").in_("question_id", code_q_ids).execute()
+    #         for cq in (cq_result.data or []):
+    #             code_q_map[cq["question_id"]] = cq
+    #     except Exception as e:
+    #         print(f"[EXAM] code_questions fetch error: {e}")
 
     questions = []
     for q in filtered:
@@ -338,129 +388,115 @@ def submit_exam(
     Finalize the exam:
     1. Reject if already submitted (idempotent safety)
     2. Calculate score against correct answers
-    3. Save final answers + score
-    4. Mark status as submitted
+    3. Save final answers + score in quiz_sessions & quiz_responses
+    4. Mark status as SUBMITTED
     5. Clear active session
     """
     db = get_supabase()
     student_id = current["student_id"]
+    user_id = current.get("user_id")
+
+    # 1. Load correct answers ONLY for the question IDs the student was served
+    answers = request.answers
+    exam_title = answers.pop("__exam_title", "Initial Assessment")
+
+    # Get exam info
+    exam_res = db.table("exam_config").select("id, category").eq("exam_title", exam_title).limit(1).execute()
+    if not exam_res.data:
+        raise HTTPException(status_code=404, detail="Exam configuration not found")
+    
+    exam_info = exam_res.data[0]
+    exam_id = exam_info["id"]
+    category = exam_info.get("category", "Others")
 
     # 1. Guard: already submitted this SPECIFIC exam?
-    exam_title_for_check = (request.answers or {}).get("__exam_title", "")
-    status_rows = (
-        db.table("exam_results")
-        .select("id")
-        .eq("student_id", student_id)
-        .eq("exam_title", exam_title_for_check)
-        .limit(1)
-        .execute()
-    )
-    if status_rows.data:
-        # Return existing result from exam_results instead of global exam_status
-        result_row = (
-            db.table("exam_results")
-            .select("score, total_marks, submitted_at, correct_count, wrong_count")
-            .eq("student_id", student_id)
-            .eq("exam_title", exam_title_for_check)
-            .single()
-            .execute()
-        )
+    session_res = db.table("quiz_sessions").select("id, status").eq("user_id", user_id).eq("exam_id", exam_id).limit(1).execute()
+    session_data = session_res.data[0] if session_res.data else {}
+
+    if session_data.get("status") == "SUBMITTED":
+        # Return existing result
+        result_row = db.table("quiz_sessions").select("score, total_marks, completed_at, metadata").eq("id", session_data["id"]).single().execute()
         r = result_row.data or {}
         total = r.get("total_marks", 0)
         score = r.get("score", 0)
+        meta = r.get("metadata", {})
         return SubmitExamResponse(
             submitted=True,
             score=score,
             total_marks=total,
-            correct_count=r.get("correct_count", 0),  # These would need to be in DB too if we want persistence
-            wrong_count=r.get("wrong_count", 0),
+            correct_count=meta.get("correct_count", 0),
+            wrong_count=meta.get("wrong_count", 0),
             percentage=round(score / total * 100, 1) if total else 0,
-            submitted_at=r.get("submitted_at", datetime.now(timezone.utc).isoformat()),
+            submitted_at=r.get("completed_at", datetime.now(timezone.utc).isoformat()),
         )
 
-    # 2. Load correct answers ONLY for the question IDs the student was served
-    answers = request.answers
-    exam_title = answers.pop("__exam_title", "Initial Assessment")
-
-    # Get the exact question IDs submitted by the student (excluding meta keys)
+    # 2. Calculate score
     submitted_ids = [k for k in answers.keys() if not k.startswith("__")]
-
-    # Fetch only those specific questions from DB
-    questions_result = (
-        db.table("questions")
-        .select("id, correct_answer, marks")
-        .in_("id", submitted_ids)
-        .execute()
-    )
-
-    correct_map = {
-        q["id"]: (q["correct_answer"], q["marks"])
-        for q in (questions_result.data or [])
-    }
+    questions_result = db.table("questions").select("id, correct_answer, marks").in_("id", submitted_ids).execute()
+    correct_map = {q["id"]: (q["correct_answer"], q["marks"]) for q in (questions_result.data or [])}
 
     score = 0
     correct_count = 0
     wrong_count = 0
-    # total_marks = marks for the questions the student actually received
     total_marks = sum(marks for _, marks in correct_map.values())
 
+    responses_payload = []
     for q_id, selected in answers.items():
         if q_id in correct_map:
             correct_ans, marks = correct_map[q_id]
-            if selected == correct_ans:
+            is_correct = (selected == correct_ans)
+            marks_obtained = marks if is_correct else 0
+            if is_correct:
                 score += marks
                 correct_count += 1
             else:
                 wrong_count += 1
+            
+            responses_payload.append({
+                "session_id": session_data.get("id"),
+                "question_id": q_id,
+                "answer_json": {"selected": selected},
+                "is_correct": is_correct,
+                "marks_obtained": marks_obtained
+            })
 
-    submitted_at = datetime.now(timezone.utc).isoformat()
+    completed_at = datetime.now(timezone.utc).isoformat()
 
-    # 4. Upsert exam_results — use student_id + exam_title as composite key
-    # so multiple exams per student are stored as separate rows
-    existing = (
-        db.table("exam_results")
-        .select("id")
-        .eq("student_id", student_id)
-        .eq("exam_title", exam_title)
-        .execute()
-    )
-    # Calculate total questions from the correct_map (questions that were served and evaluated)
-    total_q_count = len(correct_map)
-
-    if existing.data:
-        db.table("exam_results").update({
-            "answers": answers, 
-            "score": score, 
-            "total_marks": total_marks, 
+    # 4. Update quiz_sessions
+    db.table("quiz_sessions").update({
+        "status": "SUBMITTED",
+        "completed_at": completed_at,
+        "score": score,
+        "total_marks": total_marks,
+        "metadata": {
             "correct_count": correct_count,
             "wrong_count": wrong_count,
-            "total_questions": total_q_count,
-            "submitted_at": submitted_at
-        }).eq("student_id", student_id).eq("exam_title", exam_title).execute()
-    else:
-        db.table("exam_results").insert({
-            "student_id": student_id, 
-            "exam_title": exam_title, 
-            "answers": answers, 
-            "score": score, 
-            "total_marks": total_marks,
-            "correct_count": correct_count,
-            "wrong_count": wrong_count,
-            "total_questions": total_q_count,
-            "submitted_at": submitted_at
-        }).execute()
+            "total_questions": len(correct_map)
+        }
+    }).eq("id", session_data.get("id")).execute()
 
-    # 5. Clean up active session for THIS exam
-    # Instead of global "submitted", we clear the record or mark it finished for this title
-    db.table("exam_status").delete().eq("student_id", student_id).execute()  # exam_status has no exam_title col
-    
-    # Update global student active status
-    db.table("students").update({"is_active_session": False}).eq("id", student_id).execute()
+    # 5. Insert quiz_responses
+    if responses_payload:
+        db.table("quiz_responses").upsert(responses_payload).execute()
 
-    # 6. Clear active session
-    db.table("students").update(
-        {"is_active_session": False, "current_token": None}
-    ).eq("id", student_id).execute()
+    # 6. Legacy compatibility: Cleanup active session for THIS exam
+    db.table("exam_status").delete().eq("student_id", student_id).execute()
+    db.table("students").update({"is_active_session": False, "current_token": None}).eq("id", student_id).execute()
+
+    # Also update legacy exam_results for compatibility with existing history views if needed
+    # (Optional: migrate existing history views to use view_quiz_results)
+    db.table("exam_results").upsert({
+        "student_id": student_id, 
+        "exam_title": exam_title, 
+        "answers": answers, 
+        "score": score, 
+        "total_marks": total_marks,
+        "correct_count": correct_count,
+        "wrong_count": wrong_count,
+        "total_questions": len(correct_map),
+        "submitted_at": completed_at,
+        "category": category
+    }).execute()
 
     return SubmitExamResponse(
         submitted=True,
@@ -469,7 +505,7 @@ def submit_exam(
         correct_count=correct_count,
         wrong_count=wrong_count,
         percentage=round(score / total_marks * 100, 1) if total_marks else 0,
-        submitted_at=submitted_at,
+        submitted_at=completed_at,
     )
 
 
@@ -480,53 +516,82 @@ async def start_exam(
 ):
     """
     Officially starts the exam timer for the student.
-    Sets status to 'active' and records 'started_at'.
+    Sets status to 'active' and records 'started_at' in quiz_sessions.
     Returns the start time so the frontend can sync.
     """
     _check_exam_active(title)
     db = get_supabase()
     student_id = current["student_id"]
+    user_id = current.get("user_id") # Assuming user_id is in current student dict
 
-    # 1. Check if already started or submitted (single-row schema — no exam_title column)
-    status_res = db.table("exam_status").select("status, started_at").eq("student_id", student_id).limit(1).execute()
-    data = status_res.data[0] if status_res.data else {}
+    # Fetch exam config to get category and id
+    exam_res = db.table("exam_config").select("id, category").eq("exam_title", title).limit(1).execute()
+    if not exam_res.data:
+        raise HTTPException(status_code=404, detail="Exam configuration not found")
+    
+    exam_info = exam_res.data[0]
+    exam_id = exam_info["id"]
+    category = exam_info.get("category", "Others")
 
-    if data.get("status") == "submitted":
+    # 1. Check if already started or submitted in quiz_sessions
+    session_res = db.table("quiz_sessions").select("*").eq("user_id", user_id).eq("exam_id", exam_id).limit(1).execute()
+    session_data = session_res.data[0] if session_res.data else {}
+
+    if session_data.get("status") == "SUBMITTED":
         raise HTTPException(status_code=403, detail="Exam already submitted.")
+    
+    if session_data.get("status") == "TERMINATED":
+        raise HTTPException(status_code=403, detail="Session terminated due to violations.")
 
     # 2. If already active, return existing start time
-    if data.get("status") == "active" and data.get("started_at"):
-        return StartExamResponse(started_at=data["started_at"], status="active", started=True, exam_title=title)
+    if session_data.get("status") == "ACTIVE" and session_data.get("started_at"):
+        return StartExamResponse(
+            started_at=session_data["started_at"], 
+            status="active", 
+            started=True, 
+            exam_title=title,
+            session_id=session_data["id"],
+            category=category
+        )
 
-    # 3. Otherwise, set the start time NOW and RESET warnings to 0
+    # 3. Otherwise, set the start time NOW
     started_at = datetime.now(timezone.utc).isoformat()
-    if data:
-        # Row exists — update it and reset warnings
-        db.table("exam_status").update({
-            "status": "active", 
-            "started_at": started_at, 
-            "last_active": started_at,
-            "warnings": 0  # Reset for new session
-        }).eq("student_id", student_id).execute()
+    
+    if session_data:
+        # Session exists (maybe aborted before) — reactivate it
+        db.table("quiz_sessions").update({
+            "status": "ACTIVE", 
+            "started_at": started_at,
+        }).eq("id", session_data["id"]).execute()
+        session_id = session_data["id"]
     else:
-        # No row yet — insert one
-        try:
-            db.table("exam_status").insert({
-                "student_id": student_id,
-                "status": "active", 
-                "started_at": started_at, 
-                "last_active": started_at,
-                "warnings": 0
-            }).execute()
-        except Exception:
-            db.table("exam_status").update({
-                "status": "active", 
-                "started_at": started_at, 
-                "last_active": started_at,
-                "warnings": 0
-            }).eq("student_id", student_id).execute()
+        # No session yet — insert one
+        new_session = db.table("quiz_sessions").insert({
+            "user_id": user_id,
+            "exam_id": exam_id,
+            "category": category,
+            "status": "ACTIVE", 
+            "started_at": started_at,
+        }).execute()
+        session_id = new_session.data[0]["id"] if new_session.data else None
 
-    return StartExamResponse(started_at=started_at, status="active")
+    # Legacy compatibility: still update exam_status for real-time monitoring
+    db.table("exam_status").upsert({
+        "student_id": student_id,
+        "status": "active", 
+        "started_at": started_at, 
+        "last_active": started_at,
+        "warnings": 0,
+        "exam_title": title
+    }).execute()
+
+    return StartExamResponse(
+        started_at=started_at, 
+        status="active", 
+        session_id=session_id,
+        category=category,
+        exam_title=title
+    )
 
 
 # ── NEW: Batch Save Answers ───────────────────────────────────
@@ -599,71 +664,227 @@ def batch_events(
     return BatchEventsResponse(received=len(request.events))
 
 
-# ── NEW: Submit Code Answer (Pyodide result) ──────────────────
 
-@router.post("/submit-code", response_model=CodeSubmitResponse)
-def submit_code(
-    request: CodeSubmitRequest,
+# ── Unified Sync (Consolidated API) ───────────────────────────
+
+@router.post("/sync-all", response_model=UnifiedSyncResponse)
+def unified_sync(
+    request: UnifiedSyncRequest,
     background_tasks: BackgroundTasks,
     current: dict = Depends(get_current_student),
 ):
     """
-    Upsert Pyodide code execution result for a question.
-    Stores the student's code + test results in code_submissions table.
+    The Master Sync Endpoint:
+    1. Consolidates multiple dirty answer saves into one DB update.
+    2. Batches telemetry events.
+    3. Returns the LATEST exam configuration (active status, duration, etc.).
+    4. Returns the LATEST student status (warning count, terminated status).
+    
+    Projected load reduction: 80-90% fewer API calls.
     """
     db = get_supabase()
     student_id = current["student_id"]
+    user_id = current.get("user_id")
+    exam_title = request.exam_title or current.get("exam_title", "Assessment")
 
-    # Guard: reject if already submitted AND is_final
-    if request.is_final:
-        status_row = db.table("exam_status").select("status").eq("student_id", student_id).single().execute()
-        if status_row.data and status_row.data["status"] == "submitted":
-            return CodeSubmitResponse(
-                saved=False,
-                question_id=request.question_id,
-                passed_count=request.passed_count,
-                total_count=request.total_count,
-            )
+    # 1. Handle Responses (Autosave)
+    if request.responses:
+        # Check if already submitted (idempotent guard)
+        # Note: We fetch from exam_status for real-time status
+        status_check = db.table("exam_status").select("status").eq("student_id", student_id).maybeSingle().execute()
+        if not (status_check.data and status_check.data["status"] == "submitted"):
+            # Merge with existing answers in exam_results
+            existing = db.table("exam_results").select("answers").eq("student_id", student_id).execute()
+            new_answers = {r.question_id: r.answer_json.get("selected") for r in request.responses}
+            if existing.data:
+                merged = existing.data[0].get("answers") or {}
+                merged.update(new_answers)
+                db.table("exam_results").update({"answers": merged}).eq("student_id", student_id).execute()
+            else:
+                db.table("exam_results").insert({
+                    "student_id": student_id,
+                    "answers": new_answers,
+                    "score": 0,
+                    "exam_title": exam_title
+                }).execute()
 
-    results_data = [r.model_dump() for r in request.test_results]
+    # 2. Handle Events (Telemetry)
+    if request.events:
+        events_data = [e.model_dump() for e in request.events]
+        try:
+            db.table("telemetry_batches").insert({
+                "student_id": student_id,
+                "events": events_data,
+            }).execute()
+        except Exception as e:
+            print(f"[SYNC] Telemetry error: {e}")
 
-    try:
-        # Try upsert (unique on student_id + question_id)
-        existing = (
-            db.table("code_submissions")
-            .select("id")
-            .eq("student_id", student_id)
-            .eq("question_id", request.question_id)
-            .execute()
-        )
-        from datetime import datetime, timezone
-        now = datetime.now(timezone.utc).isoformat()
-        payload = {
-            "student_id": student_id,
-            "question_id": request.question_id,
-            "code": request.code,
-            "language": "python",
-            "test_results": results_data,
-            "passed_count": request.passed_count,
-            "total_count": request.total_count,
-            "is_final": request.is_final,
-            "submitted_at": now,
-        }
-        if existing.data:
-            db.table("code_submissions").update(payload).eq("student_id", student_id).eq("question_id", request.question_id).execute()
-        else:
-            db.table("code_submissions").insert(payload).execute()
-    except Exception as e:
-        print(f"[CODE] Submit error: {e}")
+    # 3. Handle Code Submissions
+    if request.code_submissions:
+        for cs in request.code_submissions:
+            try:
+                results_data = [r.model_dump() for r in cs.test_results]
+                payload = {
+                    "student_id": student_id,
+                    "question_id": cs.question_id,
+                    "code": cs.code,
+                    "language": cs.language,
+                    "test_results": results_data,
+                    "passed_count": cs.passed_count,
+                    "total_count": cs.total_count,
+                    "is_final": cs.is_final,
+                    "submitted_at": cs.submitted_at,
+                }
+                # Upsert into code_submissions
+                existing_code = db.table("code_submissions").select("id").eq("student_id", student_id).eq("question_id", cs.question_id).execute()
+                if existing_code.data:
+                    db.table("code_submissions").update(payload).eq("student_id", student_id).eq("question_id", cs.question_id).execute()
+                else:
+                    db.table("code_submissions").insert(payload).execute()
+            except Exception as e:
+                print(f"[SYNC] Code submission error for {cs.question_id}: {e}")
 
+    # 4. Fetch LATEST Config (Cached for 60s)
+    config_data = None
+    cached_cfg = get_cached_config(exam_title)
+    if cached_cfg:
+        config_data = ExamConfig(**cached_cfg)
+    else:
+        cfg_res = db.table("exam_config").select("*").eq("exam_title", exam_title).maybeSingle().execute()
+        if cfg_res.data:
+            config_data = ExamConfig(**cfg_res.data)
+            set_cached_config(exam_title, cfg_res.data)
+
+    # 4. Fetch Student Status (Real-time lookup)
+    status_data = None
+    stat_res = db.table("exam_status").select("*").eq("student_id", student_id).maybeSingle().execute()
+    if stat_res.data:
+        status_data = StudentStatus(**stat_res.data)
+
+    # Background task for heartbeat
     background_tasks.add_task(update_last_active, student_id)
 
-    return CodeSubmitResponse(
-        saved=True,
-        question_id=request.question_id,
-        passed_count=request.passed_count,
-        total_count=request.total_count,
+    return UnifiedSyncResponse(
+        success=True,
+        sync_ts=int(datetime.now(timezone.utc).timestamp() * 1000),
+        config=config_data,
+        status=status_data
     )
+
+
+@router.post("/pulse")
+def student_pulse(
+    request: PulseRequest,
+    current: dict = Depends(get_current_student)
+):
+    """
+    High-frequency heartbeat (every 10s).
+    Offloads Supabase by using Upstash Redis for ephemeral status.
+    Returns termination flag if admin has banned the student.
+    """
+    redis = get_redis()
+    student_id = current["student_id"]
+    
+    # 1. Update heartbeat in Redis (expires in 30s)
+    if redis:
+        try:
+            key = f"pulse:{student_id}"
+            payload = {
+                "ts": request.ts,
+                "q": request.current_question_id or "na",
+                "exam": request.exam_title or "na"
+            }
+            redis.set(key, json.dumps(payload), ex=30)
+            
+            # 2. Check for termination flag in Redis
+            # Admins will set "terminate:{student_id}" = "true" to force logout
+            is_terminated = redis.get(f"terminate:{student_id}")
+            if is_terminated == "true":
+                return {"terminate": True, "status": "terminated"}
+                
+        except Exception as e:
+            print(f"[REDIS] Pulse error: {e}")
+
+    # Fallback/Supplemental: Return student status (cached config if needed)
+    # We don't hit Supabase here unless we absolutely have to for status updates.
+    # For now, just return success.
+    return {"status": "ok", "terminate": False}
+
+
+# ── DEPRECATED: Consolidated into /sync-all ──────────────────
+
+# @router.post("/save-answer", response_model=SaveAnswerResponse)
+# ...
+# @router.post("/batch-save", response_model=BatchSaveResponse)
+# ...
+# @router.post("/batch-events", response_model=BatchEventsResponse)
+# ...
+
+# ── NEW: Submit Code Answer (Pyodide result) ──────────────────
+
+# @router.post("/submit-code", response_model=CodeSubmitResponse)
+# def submit_code(
+#     request: CodeSubmitRequest,
+#     background_tasks: BackgroundTasks,
+#     current: dict = Depends(get_current_student),
+# ):
+#     """
+#     Upsert Pyodide code execution result for a question.
+#     Stores the student's code + test results in code_submissions table.
+#     """
+#     db = get_supabase()
+#     student_id = current["student_id"]
+#
+#     # Guard: reject if already submitted AND is_final
+#     if request.is_final:
+#         status_row = db.table("exam_status").select("status").eq("student_id", student_id).single().execute()
+#         if status_row.data and status_row.data["status"] == "submitted":
+#             return CodeSubmitResponse(
+#                 saved=False,
+#                 question_id=request.question_id,
+#                 passed_count=request.passed_count,
+#                 total_count=request.total_count,
+#             )
+#
+#     results_data = [r.model_dump() for r in request.test_results]
+#
+#     try:
+#         # Try upsert (unique on student_id + question_id)
+#         existing = (
+#             db.table("code_submissions")
+#             .select("id")
+#             .eq("student_id", student_id)
+#             .eq("question_id", request.question_id)
+#             .execute()
+#         )
+#         from datetime import datetime, timezone
+#         now = datetime.now(timezone.utc).isoformat()
+#         payload = {
+#             "student_id": student_id,
+#             "question_id": request.question_id,
+#             "code": request.code,
+#             "language": "python",
+#             "test_results": results_data,
+#             "passed_count": request.passed_count,
+#             "total_count": request.total_count,
+#             "is_final": request.is_final,
+#             "submitted_at": now,
+#         }
+#         if existing.data:
+#             db.table("code_submissions").update(payload).eq("student_id", student_id).eq("question_id", request.question_id).execute()
+#         else:
+#             db.table("code_submissions").insert(payload).execute()
+#     except Exception as e:
+#         print(f"[CODE] Submit error: {e}")
+#
+#     background_tasks.add_task(update_last_active, student_id)
+#
+#     return CodeSubmitResponse(
+#         saved=True,
+#         question_id=request.question_id,
+#         passed_count=request.passed_count,
+#         total_count=request.total_count,
+#     )
 
 
 

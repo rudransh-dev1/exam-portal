@@ -96,9 +96,11 @@ export function useAutoSave({
   const dirtyRef     = useRef(dirtyIds);
   const submittedRef = useRef(isSubmitted);
 
-  answersRef.current   = answers;
-  dirtyRef.current     = dirtyIds;
-  submittedRef.current = isSubmitted;
+  useEffect(() => {
+    answersRef.current   = answers;
+    dirtyRef.current     = dirtyIds;
+    submittedRef.current = isSubmitted;
+  }, [answers, dirtyIds, isSubmitted]);
 
   const flush = useCallback(async () => {
     if (submittedRef.current) return;

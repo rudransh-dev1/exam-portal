@@ -67,6 +67,90 @@ __err = _stderr_buf.getvalue()
   return { stdout, stderr };
 }
 
+/* ── Smart Semantic Matcher ── */
+function tryParseJSONLike(str) {
+  if (!str) return null;
+  let cleaned = str.trim();
+  try { return JSON.parse(cleaned); } catch (e) {}
+  try {
+    let jsStr = cleaned
+      .replace(/'/g, '"')
+      .replace(/\bTrue\b/g, 'true')
+      .replace(/\bFalse\b/g, 'false')
+      .replace(/\bNone\b/g, 'null');
+    return JSON.parse(jsStr);
+  } catch (e) {}
+  return null;
+}
+
+function deepEqual(a, b) {
+  if (a === b) return true;
+  if (typeof a === 'number' && typeof b === 'number') {
+    return Math.abs(a - b) < 1e-5;
+  }
+  if (a && b && typeof a === 'object' && typeof b === 'object') {
+    if (Array.isArray(a) !== Array.isArray(b)) return false;
+    if (Array.isArray(a)) {
+      if (a.length !== b.length) return false;
+      for (let i = 0; i < a.length; i++) {
+        if (!deepEqual(a[i], b[i])) return false;
+      }
+      return true;
+    }
+    const keysA = Object.keys(a);
+    const keysB = Object.keys(b);
+    if (keysA.length !== keysB.length) return false;
+    for (const key of keysA) {
+      if (!keysB.includes(key)) return false;
+      if (!deepEqual(a[key], b[key])) return false;
+    }
+    return true;
+  }
+  if (!isNaN(Number(a)) && !isNaN(Number(b)) && a !== "" && b !== "") {
+    return Math.abs(Number(a) - Number(b)) < 1e-5;
+  }
+  return false;
+}
+
+function normalizeString(str) {
+  if (typeof str !== 'string') return '';
+  return str
+    .trim()
+    .toLowerCase()
+    .replace(/\r?\n/g, ' ')
+    .replace(/\s+/g, ' ')
+    .replace(/['"]/g, '"')
+    .replace(/,\s*([\]}])/g, '$1')
+    .trim();
+}
+
+function extractJSON(str) {
+  const jsonRegex = /(\{|\[)[\s\S]*(\}|\])/;
+  const match = str.match(jsonRegex);
+  if (match) {
+    return tryParseJSONLike(match[0]);
+  }
+  return null;
+}
+
+function smartCompare(got, expected) {
+  const gotStr = String(got || "").trim();
+  const expectedStr = String(expected || "").trim();
+  if (gotStr === expectedStr) return true;
+  if (!isNaN(Number(gotStr)) && !isNaN(Number(expectedStr)) && gotStr !== "" && expectedStr !== "") {
+    if (Math.abs(Number(gotStr) - Number(expectedStr)) < 1e-5) return true;
+  }
+  
+  const expectedObj = tryParseJSONLike(expectedStr);
+  if (expectedObj !== null) {
+    const gotObj = tryParseJSONLike(gotStr) || extractJSON(gotStr);
+    if (gotObj !== null && deepEqual(gotObj, expectedObj)) return true;
+  }
+  
+  if (normalizeString(gotStr) === normalizeString(expectedStr)) return true;
+  return false;
+}
+
 /* ── Message handler ── */
 self.onmessage = async (event) => {
   const msg = event.data;
@@ -110,7 +194,7 @@ self.onmessage = async (event) => {
       try {
         const { stdout, stderr } = await runSingle(pyodide, msg.code, inputLines, 12000);
         const got  = stdout.trim();
-        const pass = got === expected;
+        const pass = smartCompare(got, expected);
         results.push({ pass, got, expected, stderr });
       } catch (err) {
         results.push({ pass: false, got: "", expected, error: String(err) });
@@ -131,7 +215,7 @@ self.onmessage = async (event) => {
       const { stdout } = await runSingle(pyodide, msg.code, inputLines, msg.timeLimitMs || 10000);
       const actual   = stdout.trim();
       const expected = String(tc.expected_output || "").trim();
-      const passed   = actual === expected;
+      const passed   = smartCompare(actual, expected);
       results.push({
         index: i,
         passed,
@@ -151,5 +235,7 @@ self.onmessage = async (event) => {
       });
     }
   }
-  postMessage({ id, type: "result", results, error: null });
+  const passedCount = results.filter(r => r.passed).length;
+  const totalCount = results.length;
+  postMessage({ id, type: "result", results, passedCount, totalCount, error: null });
 };

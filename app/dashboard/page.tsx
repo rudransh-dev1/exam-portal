@@ -10,6 +10,22 @@ import { fetchPublicExamConfig, apiFetch, fetchProfile } from "@/lib/api";
 // Styles
 import "./theme.css";
 import styles from "./dashboard.module.css";
+import { 
+  Zap, 
+  ShieldCheck, 
+  Activity, 
+  Clock, 
+  Trophy, 
+  AlertCircle,
+  LayoutDashboard,
+  Code2,
+  BrainCircuit,
+  CalendarDays,
+  History as HistoryIcon,
+  User as UserIcon,
+  Search,
+  CheckCircle2
+} from "lucide-react";
 
 // Components
 const Background = nextDynamic(() => import("@/components/dashboard/Background"), { ssr: false });
@@ -37,14 +53,23 @@ interface ProfileData {
 }
 
 const NAV_ITEMS = [
-  { id: "Home", icon: "⌂", label: "Home" },
-  { id: "Aptitude", icon: "◎", label: "Aptitude Test" },
-  { id: "Programming", icon: "◇", label: "Programming" },
-  { id: "Others", icon: "◉", label: "Other Quiz" },
-  { id: "PyHunt", icon: "🐍", label: "PyHunt" },
-  { id: "Profile", icon: "👤", label: "Profile" },
-  { id: "History", icon: "⌛", label: "History" },
+  { id: "Home", icon: <LayoutDashboard size={18} />, label: "Home" },
+  { id: "Aptitude", icon: <BrainCircuit size={18} />, label: "Aptitude Test" },
+  { id: "Programming", icon: <Code2 size={18} />, label: "Programming" },
+  { id: "Events", icon: <CalendarDays size={18} />, label: "Events" },
+  { id: "Others", icon: <Zap size={18} />, label: "Other Quiz" },
+  { id: "Profile", icon: <UserIcon size={18} />, label: "Profile" },
+  { id: "History", icon: <HistoryIcon size={18} />, label: "History" },
 ];
+
+function getNormalizedCategory(rawCat: string | undefined | null): string {
+  const c = (rawCat || "Others").trim().toLowerCase();
+  if (c.includes("apti")) return "Aptitude";
+  if (c.includes("prog") || c.includes("prragm") || c.includes("progarrmign") || c.includes("coding")) return "Programming";
+  if (c === "events" || c === "event") return "Events";
+  return "Others";
+}
+
 
 function getTimeUntil(dateStr: string | null) {
   if (!dateStr) return null;
@@ -60,6 +85,17 @@ function TreeOfLifeOrb({ size = 120, label = "Loading…", sublabel = "" }: { si
   const s = size;
   const ring1 = s * 1.22;
   const ring2 = s * 1.48;
+  const orbImgStyle = {
+    width: "100%",
+    height: "100%",
+    borderRadius: "50%",
+    backgroundImage: `url(https://media.base44.com/images/public/69fd11b7a90f528525fa294d/4c5cd2498_image.png)`,
+    backgroundSize: "cover",
+    backgroundPosition: "center",
+    animation: `tol-spin 6s linear infinite`,
+    willChange: "transform" as React.CSSProperties["willChange"],
+    boxShadow: `0 0 ${s*0.25}px rgba(30,220,160,0.35), 0 0 ${s*0.5}px rgba(30,220,160,0.12), inset 0 0 ${s*0.18}px rgba(255,200,80,0.25)`
+  };
   return (
     <>
       <style>{`
@@ -75,7 +111,7 @@ function TreeOfLifeOrb({ size = 120, label = "Loading…", sublabel = "" }: { si
           <div style={{ position:"absolute", width:ring2, height:ring2, borderRadius:"50%", border:"1.5px solid rgba(100,220,180,0.28)", animation:"tol-ring2 8s linear infinite", transformStyle:"preserve-3d" as React.CSSProperties["transformStyle"] }} />
           <div style={{ position:"absolute", width:ring1, height:ring1, borderRadius:"50%", border:"1.5px solid rgba(180,140,80,0.4)", animation:"tol-ring1 5s linear infinite", transformStyle:"preserve-3d" as React.CSSProperties["transformStyle"] }} />
           <div style={{ width:s, height:s, borderRadius:"50%", perspective:s*3, perspectiveOrigin:"50% 50%", transformStyle:"preserve-3d" as React.CSSProperties["transformStyle"] }}>
-            <div style={{ width:"100%", height:"100%", borderRadius:"50%", backgroundImage:`url(https://media.base44.com/images/public/69fd11b7a90f528525fa294d/4c5cd2498_image.png)`, backgroundSize:"cover", backgroundPosition:"center", animation:`tol-spin 6s linear infinite`, willChange:"transform", boxShadow:`0 0 ${s*0.25}px rgba(30,220,160,0.35), 0 0 ${s*0.5}px rgba(30,220,160,0.12), inset 0 0 ${s*0.18}px rgba(255,200,80,0.25)` }} />
+            <div style={orbImgStyle} />
           </div>
         </div>
         <div style={{ textAlign:"center" }}>
@@ -88,7 +124,7 @@ function TreeOfLifeOrb({ size = 120, label = "Loading…", sublabel = "" }: { si
 }
 
 export default function DashboardPage() {
-  const router = useRouter();
+  const { push, replace } = useRouter();
   const [student, setStudent] = useState<StudentInfo | null>(null);
   const [activeNav, setActiveNav] = useState("Home");
   const [allExams, setAllExams] = useState<ExamNode[]>([]);
@@ -99,6 +135,7 @@ export default function DashboardPage() {
   const [draft, setDraft] = useState<ProfileData>({ name: "", email: "", course: "", photo: null });
   const [theme, setTheme] = useState<'galaxy' | 'classic'>('galaxy');
   const [localHistory, setLocalHistory] = useState<any[]>([]);
+  const [historyMode, setHistoryMode] = useState<'All' | 'Aptitude' | 'Programming' | 'Events' | 'Others'>('All');
 
   useEffect(() => {
     const raw = sessionStorage.getItem("exam_student");
@@ -107,7 +144,7 @@ export default function DashboardPage() {
     
     if (!raw || !token) { 
       console.warn("[DASHBOARD] Auth missing, redirecting to login.");
-      router.replace("/login"); 
+      replace("/login"); 
       return; 
     }
     const s: StudentInfo = JSON.parse(raw);
@@ -128,7 +165,7 @@ export default function DashboardPage() {
       setActiveNav("History");
       window.history.replaceState({}, "", window.location.pathname);
     }
-  }, [router]);
+  }, [replace]);
 
   const loadExams = useCallback(async () => {
     try {
@@ -182,7 +219,7 @@ export default function DashboardPage() {
                   score: displayScore,
                   totalMarks: displayTotal,
                   timestamp: r.submitted_at,
-                  category: r.category || "Others"
+                  category: getNormalizedCategory(r.category)
                 });
               }
             });
@@ -223,7 +260,7 @@ export default function DashboardPage() {
             duration_minutes: cfg.duration_minutes,
             scheduled_start: cfg.scheduled_start,
             question_count: cfg.total_questions || 0,
-            category: cfg.category || "Others",
+            category: getNormalizedCategory(cfg.category),
             submitted: sub.attempt_count > 0,
             score: sub.score,
             total_marks: sub.total_marks || cfg.total_marks || 0,
@@ -361,15 +398,11 @@ export default function DashboardPage() {
     if (currentA >= maxA) return false;
     if (e.submitted && maxA <= 1) return false;
 
-    const isCompletedInHistory = localHistory.some(h => 
-      (h.examName || "").trim().toLowerCase() === (e.exam_name || "").trim().toLowerCase()
-    );
-    if (isCompletedInHistory) return false;
-
     if (activeNav === "Home") return true;
-    if (["Profile", "History", "Insights", "PyHunt"].includes(activeNav)) return false;
-    if (activeNav === "Others") return e.category !== "Aptitude" && e.category !== "Programming";
-    return e.category === activeNav;
+    if (["Profile", "History", "Insights"].includes(activeNav)) return false;
+    const normCategory = getNormalizedCategory(e.category);
+    if (activeNav === "Others") return !["Aptitude", "Programming", "Events"].includes(normCategory);
+    return normCategory === activeNav;
   }), [allExams, activeNav, localHistory, student]);
 
   const activeExams = useMemo(() => filteredExams.filter(e => !e.scheduled_start || new Date(e.scheduled_start).getTime() <= Date.now()), [filteredExams]);
@@ -397,9 +430,7 @@ export default function DashboardPage() {
     };
   }, [localHistory]);
 
-  const [enteredPyHuntCode, setEnteredPyHuntCode] = useState("");
-  const [pyHuntError, setPyHuntError] = useState(false);
-  const VALID_PYHUNT_CODE = "NEXUS24"; // The code to enter
+
 
   const handleLaunch = useCallback(async (exam: ExamNode) => {
     if (!exam.is_active) return;
@@ -440,8 +471,8 @@ export default function DashboardPage() {
     setWarpActive(true);
     sessionStorage.setItem("exam_selected_title", exam.exam_name);
     await new Promise((r: any) => setTimeout(r, 1200));
-    router.push("/instructions");
-  }, [router]);
+    push("/instructions");
+  }, [push]);
 
   const handleLogout = () => { 
     // Total Wipeout: Clear all traces of the current student session
@@ -455,7 +486,7 @@ export default function DashboardPage() {
         .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
     });
 
-    router.replace("/login"); 
+    replace("/login"); 
   };
 
   const handleSaveProfile = () => {
@@ -523,39 +554,55 @@ export default function DashboardPage() {
           </header>
 
           <div className={styles.content}>
-            {activeNav === "Home" && (
-              <div className={styles.homeGrid}>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeNav}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2, ease: "easeOut" }}
+              >
+                {activeNav === "Home" && (
+                  <div className={styles.homeGrid}>
+                    {/* ── COMMAND CENTER STATUS ── */}
+                    <div className={styles.statsOverview}>
+                      <div className={styles.statCard}>
+                        <div className={styles.statIcon} style={{ color: "var(--nexus-accent)" }}>
+                          <Activity size={24} />
+                        </div>
+                        <div className={styles.statMeta}>
+                          <span className={styles.statLabel}>System Status</span>
+                          <span className={styles.statValue}>OPTIMAL</span>
+                        </div>
+                        <div className={styles.statGlow} />
+                      </div>
+                      <div className={styles.statCard}>
+                        <div className={styles.statIcon} style={{ color: "#3b82f6" }}>
+                          <ShieldCheck size={24} />
+                        </div>
+                        <div className={styles.statMeta}>
+                          <span className={styles.statLabel}>Security Node</span>
+                          <span className={styles.statValue}>ENCRYPTED</span>
+                        </div>
+                      </div>
+                      <div className={styles.statCard}>
+                        <div className={styles.statIcon} style={{ color: "#8b5cf6" }}>
+                          <Trophy size={24} />
+                        </div>
+                        <div className={styles.statMeta}>
+                          <span className={styles.statLabel}>Rank</span>
+                          <span className={styles.statValue}>Top 5%</span>
+                        </div>
+                      </div>
+                    </div>
+                {/* ── LIVE ASSESSMENTS ── */}
                 <section className={styles.examSection}>
-                  {/* PyHunt Special Event Banner */}
-                  <div 
-                    className={styles.pyhuntBanner}
-                    onClick={() => setActiveNav("PyHunt")}
-                  >
-                    <div className={styles.pyhuntBannerGlow} />
-                    <div className={styles.pyhuntBannerLeft}>
-                      <span className={styles.pyhuntSpecialTag}>⚡ SPECIAL EVENT</span>
-                      <h2 className={styles.pyhuntBannerTitle}>
-                        <span style={{ fontSize: 20 }}>🐍</span> PyHunt: Logic Treasure Hunt
-                      </h2>
-                      <p className={styles.pyhuntBannerDesc}>Crack 4 rounds of Python puzzles, unlock clues, and rise to the top.</p>
-                      <button className={styles.pyhuntBannerBtn}>JOIN PYHUNT →</button>
-                    </div>
-                    <div className={styles.pyhuntBannerRight}>
-                      <div className={styles.pyhuntOrb} />
-                    </div>
-                  </div>
-
-                  {/* Available Exams heading */}
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+                  <div className={styles.sectionHeader}>
                     <div>
-                      <h2 style={{ fontSize: 18, fontWeight: 800, color: "var(--text-primary, #fff)", margin: 0 }}>Available Exams</h2>
-                      <p style={{ fontSize: 13, color: "var(--text-muted, rgba(255,255,255,0.5))", margin: "2px 0 0" }}>Live and upcoming assessments</p>
+                      <h2 className={styles.sectionTitle}>Live Assessments</h2>
+                      <p className={styles.sectionSub}>Available for immediate authorization</p>
                     </div>
-                    <span style={{
-                      fontSize: 11, fontWeight: 700, padding: "4px 12px",
-                      background: "rgba(16,185,129,0.12)", border: "1px solid rgba(16,185,129,0.3)",
-                      borderRadius: 999, color: "#10b981", letterSpacing: 1,
-                    }}>SYSTEM LIVE</span>
+                    <div className={styles.liveStatusBadge}>SYSTEM LIVE</div>
                   </div>
 
                   <div className={styles.cardsGrid}>
@@ -566,29 +613,55 @@ export default function DashboardPage() {
                         onLaunch={() => handleLaunch(exam)} 
                       />
                     ))}
-                    {upcomingExams.map((exam) => (
-                      <ExamCard 
-                        key={exam.id} 
-                        exam={exam} 
-                        isUpcoming={true}
-                        timeUntil={getTimeUntil(exam.scheduled_start)}
-                        onLaunch={() => {}} 
-                      />
-                    ))}
-                    {activeExams.length === 0 && upcomingExams.length === 0 && (
-                      <div className={styles.noExamsMsg}>
-                         <div style={{fontSize: "40px", marginBottom: "16px"}}>✨</div>
-                         <h3>All Clear!</h3>
-                         <p>No active or upcoming exams found for your branch ({student?.branch || "General"}).</p>
-                         <button onClick={loadExams} className={styles.refreshBtn}>Check Again</button>
+                    {activeExams.length === 0 && (
+                      <div className={styles.emptyStateSimple}>
+                        No live exams available at this moment.
                       </div>
                     )}
                   </div>
                 </section>
+
+                {/* ── UPCOMING ── */}
+                {upcomingExams.length > 0 && (
+                  <section className={styles.examSection}>
+                    <div className={styles.sectionHeader}>
+                      <div>
+                        <h2 className={styles.sectionTitle}>Upcoming Schedule</h2>
+                        <p className={styles.sectionSub}>Prepare for your next challenge</p>
+                      </div>
+                    </div>
+                    <div className={styles.cardsGrid}>
+                      {upcomingExams.map((exam) => (
+                        <ExamCard 
+                          key={exam.id} 
+                          exam={exam} 
+                          isUpcoming={true}
+                          timeUntil={getTimeUntil(exam.scheduled_start)}
+                          onLaunch={() => {}} 
+                        />
+                      ))}
+                    </div>
+                  </section>
+                )}
+
+                {activeExams.length === 0 && upcomingExams.length === 0 && (
+                  <motion.div 
+                    className={styles.noExamsMsg}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                  >
+                     <div style={{fontSize: "64px", marginBottom: "24px", filter: "drop-shadow(0 0 20px rgba(40, 215, 214, 0.4))"}}>✨</div>
+                     <h3 style={{ fontSize: '1.8rem', fontWeight: 900, marginBottom: '8px' }}>All Clear!</h3>
+                     <p style={{ opacity: 0.7, maxWidth: '300px', margin: '0 auto 24px' }}>No active or upcoming exams found for your node. You're all caught up!</p>
+                     <button onClick={loadExams} className={styles.refreshBtn} style={{ width: 'auto', padding: '0 24px', fontSize: '14px', fontWeight: 700 }}>
+                       Check for Updates
+                     </button>
+                  </motion.div>
+                )}
               </div>
             )}
             
-            {activeNav !== "Home" && !["Profile", "PyHunt", "History"].includes(activeNav) && (
+            {activeNav !== "Home" && !["Profile", "History"].includes(activeNav) && (
               <div className={styles.cardsGrid}>
                  {filteredExams.length > 0 ? (
                     filteredExams.map((exam: any) => (
@@ -604,49 +677,7 @@ export default function DashboardPage() {
               </div>
             )}
 
-            {/* PYHUNT (EVENTS) */}
-            {activeNav === "PyHunt" && (
-              <div className={styles.pyhuntSection}>
-                <div className={styles.pyhuntCard}>
-                  <div className={styles.pyhuntEmoji}>🐍</div>
-                  <h2 className={styles.pyhuntTitle}>PyHunt 2024</h2>
-                  <p className={styles.pyhuntDesc}>Python Treasure Hunt — Solve 4 rounds of code challenges to unlock the final offline showdown.</p>
-                  
-                  <div className={styles.pyhuntAuth}>
-                    <input 
-                      type="text" 
-                      placeholder="Enter Access Code..." 
-                      className={`${styles.pyhuntInput} ${pyHuntError ? styles.pyhuntInputError : ""}`}
-                      value={enteredPyHuntCode}
-                      onChange={(e) => {
-                        setEnteredPyHuntCode(e.target.value.toUpperCase());
-                        setPyHuntError(false);
-                      }}
-                    />
-                    <button className={styles.startBtn} onClick={async () => {
-                      if (enteredPyHuntCode === VALID_PYHUNT_CODE) {
-                        const token = sessionStorage.getItem("exam_token");
-                        const res = await fetch(`/api/exam/pyhunt/status?_=${Date.now()}`, {
-                           headers: { "Authorization": `Bearer ${token}` }
-                        });
-                        const pyHuntStats = await res.json();
-                        const myProgress = pyHuntStats.data;
-                        
-                        if (myProgress && myProgress.status === "TERMINATED") {
-                          setPyHuntError(true);
-                          alert("You have been terminated from PyHunt due to violations.");
-                          return;
-                        }
-                        router.push("/pyhunt");
-                      } else {
-                        setPyHuntError(true);
-                      }
-                    }}>🚀 Start PyHunt</button>
-                  </div>
-                  {pyHuntError && <p className={styles.authError}>Invalid access code. Contact facilitator.</p>}
-                </div>
-              </div>
-            )}
+
             {/* PROFILE */}
             {activeNav === "Profile" && (
               <div className={styles.profileStack}>
@@ -714,7 +745,7 @@ export default function DashboardPage() {
                     <div className={styles.field}>
                       <label>Profile Photo</label>
                       <input type="file" accept="image/*" onChange={handlePhotoChange} />
-                      <p style={{fontSize:'10px', opacity:0.5, marginTop: '4px'}}>Stored locally in your secure environment.</p>
+                      <p style={{fontSize:'13px', opacity:0.5, marginTop: '4px'}}>Stored locally in your secure environment.</p>
                     </div>
                     <div className={styles.actions}>
                       <button className={styles.saveBtn} onClick={handleSaveProfile}>Save Changes</button>
@@ -730,22 +761,82 @@ export default function DashboardPage() {
               <div className={styles.historyContainer}>
                 <div className={styles.historyCard}>
                   <div className={styles.historyHeader}>
-                    <h3>Assessment History</h3>
-                    <p>Review your completed exams and scores</p>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div>
+                        <h3>Assessment History</h3>
+                        <p>Review your completed exams and scores</p>
+                      </div>
+                      <div className={styles.historySelectContainer}>
+                        <select 
+                          className={styles.historySelect}
+                          value={historyMode}
+                          onChange={(e: any) => setHistoryMode(e.target.value as any)}
+                        >
+                          <option value="All">All Categories</option>
+                          <option value="Aptitude">Aptitude</option>
+                          <option value="Programming">Programming</option>
+                          <option value="Events">Events</option>
+                          <option value="Others">Others</option>
+                        </select>
+                      </div>
+                    </div>
                   </div>
                   <div className={styles.historyList}>
-                    {localHistory.length === 0 ? (
-                      <div style={{ display:"flex", justifyContent:"center", padding:"32px 0" }}>
-                        <TreeOfLifeOrb size={100} label="Coming Soon" sublabel="Complete an exam to see your history here" />
-                      </div>
-                    ) : (
-                      localHistory.map((r: any, i: number) => (
-                        <div key={i} className={styles.historyItem}>
+                    {(() => {
+                      const filteredHistory = localHistory.filter(h => {
+                        if (historyMode === 'All') return true;
+                        return h.category === historyMode;
+                      });
+
+                      if (filteredHistory.length === 0) {
+                        return (
+                          <motion.div 
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            style={{ display:"flex", flexDirection: "column", alignItems: "center", justifyContent:"center", padding:"48px 0", gap: "16px" }}
+                          >
+                            <TreeOfLifeOrb size={100} label={historyMode === 'Events' ? "No Events Found" : "No Exams Found"} sublabel={historyMode === 'Events' ? "You haven't participated in any events yet." : "Complete an exam to see your history here."} />
+                          </motion.div>
+                        );
+                      }
+
+                      const deleteBtnStyle: React.CSSProperties = {
+                        background: "rgba(239,68,68,0.1)",
+                        border: "1px solid rgba(239,68,68,0.3)",
+                        color: "#f87171",
+                        borderRadius: 8,
+                        padding: "5px 10px",
+                        fontSize: 12,
+                        cursor: "pointer",
+                        fontWeight: 700,
+                        transition: "all 0.15s",
+                        flexShrink: 0,
+                      };
+
+                      return filteredHistory.map((r: any, i: number) => (
+                        <motion.div 
+                          key={r.id || i} 
+                          className={styles.historyItem}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: i * 0.05 }}
+                        >
                           <div className={styles.historyLeft}>
                             <span className={styles.historyIcon}>📋</span>
                             <div className={styles.historyInfo}>
                               <div className={styles.historyName}>{r.examName || "Nexus Assessment"}</div>
-                              <div className={styles.historyDate}>{new Date(r.timestamp).toLocaleDateString()}</div>
+                              <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                                <div className={styles.historyDate} suppressHydrationWarning>{new Date(r.timestamp).toLocaleDateString()}</div>
+                                <span style={{ 
+                                  fontSize: '13px', 
+                                  padding: '1px 5px', 
+                                  borderRadius: '3px', 
+                                  background: `var(--category-${(r.category || 'others').toLowerCase()})`,
+                                  color: '#fff',
+                                  fontWeight: 800,
+                                  textTransform: 'uppercase'
+                                }}>{r.category || 'Others'}</span>
+                              </div>
                             </div>
                           </div>
                           <div className={styles.historyRight}>
@@ -758,18 +849,7 @@ export default function DashboardPage() {
                               <button
                                 onClick={() => deleteHistoryItem(r, i)}
                                 title="Delete this result"
-                                style={{
-                                  background: "rgba(239,68,68,0.1)",
-                                  border: "1px solid rgba(239,68,68,0.3)",
-                                  color: "#f87171",
-                                  borderRadius: 8,
-                                  padding: "5px 10px",
-                                  fontSize: 12,
-                                  cursor: "pointer",
-                                  fontWeight: 700,
-                                  transition: "all 0.15s",
-                                  flexShrink: 0,
-                                }}
+                                style={deleteBtnStyle}
                                 onMouseEnter={e => (e.currentTarget.style.background = "rgba(239,68,68,0.2)")}
                                 onMouseLeave={e => (e.currentTarget.style.background = "rgba(239,68,68,0.1)")}
                               >
@@ -777,14 +857,16 @@ export default function DashboardPage() {
                               </button>
                             </div>
                           </div>
-                        </div>
+                        </motion.div>
                       ))
-                    )}
+                    })()}
                   </div>
                 </div>
               </div>
             )}
 
+              </motion.div>
+            </AnimatePresence>
           </div>
         </main>
       </div>

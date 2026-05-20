@@ -61,7 +61,7 @@ async def autosave(req: AutosaveRequest, user=Depends(get_current_student)):
 
     # Verify session belongs to user
     sess = (
-        sb.table("exam_sessions")
+        sb.table("quiz_sessions")
         .select("id, status")
         .eq("id", req.session_id)
         .eq("user_id", user["id"])
@@ -70,8 +70,8 @@ async def autosave(req: AutosaveRequest, user=Depends(get_current_student)):
     )
     if not sess.data:
         raise HTTPException(status_code=404, detail="Session not found")
-    if sess.data.get("status") == "submitted":
-        return {"status": "ok", "upsert_count": 0, "note": "already_submitted"}
+    if sess.data.get("status") in ["SUBMITTED", "TERMINATED"]:
+        return {"status": "ok", "upsert_count": 0, "note": "session_closed"}
 
     if not req.responses:
         return {"status": "ok", "upsert_count": 0}
@@ -81,7 +81,6 @@ async def autosave(req: AutosaveRequest, user=Depends(get_current_student)):
         {
             "session_id":  req.session_id,
             "question_id": r.question_id,
-            "user_id":     user["id"],
             "answer_json": r.answer_json if isinstance(r.answer_json, dict) else {"value": r.answer_json},
             "updated_at":  r.updated_at or now,
             "is_final":    r.is_final or False,
@@ -89,10 +88,10 @@ async def autosave(req: AutosaveRequest, user=Depends(get_current_student)):
         for r in req.responses
     ]
 
-    sb.table("responses").upsert(rows, on_conflict="session_id,question_id").execute()
+    sb.table("quiz_responses").upsert(rows, on_conflict="session_id,question_id").execute()
 
     # Update last_activity
-    sb.table("exam_sessions").update({"last_activity_at": now}).eq("id", req.session_id).execute()
+    sb.table("quiz_sessions").update({"last_activity_at": now}).eq("id", req.session_id).execute()
 
     return {"status": "ok", "upsert_count": len(rows)}
 
@@ -130,9 +129,8 @@ async def events_batch(req: EventsBatchRequest, user=Depends(get_current_student
     for e in req.events:
         ts_dt = datetime.fromtimestamp(e.ts / 1000, tz=timezone.utc).isoformat() if e.ts else now_iso
         rows.append({
-            "event_id":   e.event_id,
+            "id":         e.event_id,
             "session_id": req.session_id,
-            "user_id":    user["id"],
             "event_type": e.type,
             "payload":    e.payload_json if isinstance(e.payload_json, dict) else {"value": e.payload_json},
             "created_at": ts_dt,
@@ -150,7 +148,7 @@ async def events_batch(req: EventsBatchRequest, user=Depends(get_current_student
             }, on_conflict="session_id,violation_type").execute()
 
     # Bulk insert with dedup (ON CONFLICT DO NOTHING via ignoreDuplicates)
-    sb.table("events_log").upsert(rows, on_conflict="event_id", ignore_duplicates=True).execute()
+    sb.table("quiz_telemetry").upsert(rows, on_conflict="id", ignore_duplicates=True).execute()
 
     return {"status": "ok", "inserted": len(rows)}
 
@@ -175,7 +173,7 @@ async def events_beacon(request: Request):
         now_iso = datetime.now(timezone.utc).isoformat()
         rows = [
             {
-                "event_id":   e.get("event_id", str(__import__('uuid').uuid4())),
+                "id":         e.get("event_id", str(__import__('uuid').uuid4())),
                 "session_id": session_id,
                 "event_type": e.get("type", "beacon"),
                 "payload":    e.get("payload_json") or {},
@@ -183,7 +181,7 @@ async def events_beacon(request: Request):
             }
             for e in events[:50]   # hard cap
         ]
-        sb.table("events_log").upsert(rows, on_conflict="event_id", ignore_duplicates=True).execute()
+        sb.table("quiz_telemetry").upsert(rows, on_conflict="id", ignore_duplicates=True).execute()
         return {"status": "ok"}
     except Exception:
         return {"status": "ok"}   # beacon must always get 200
@@ -208,30 +206,28 @@ async def sync(req: SyncRequest, user=Depends(get_current_student)):
             {
                 "session_id":  req.session_id,
                 "question_id": r.question_id,
-                "user_id":     user["id"],
                 "answer_json": r.answer_json if isinstance(r.answer_json, dict) else {"value": r.answer_json},
                 "updated_at":  r.updated_at or now_iso,
                 "is_final":    r.is_final or False,
             }
             for r in req.responses[:MAX_BATCH_RESPONSES]
         ]
-        sb.table("responses").upsert(rows, on_conflict="session_id,question_id").execute()
+        sb.table("quiz_responses").upsert(rows, on_conflict="session_id,question_id").execute()
         upserted = len(rows)
 
     inserted = 0
     if req.events:
         rows = [
             {
-                "event_id":   e.event_id,
+                "id":         e.event_id,
                 "session_id": req.session_id,
-                "user_id":    user["id"],
                 "event_type": e.type,
                 "payload":    e.payload_json if isinstance(e.payload_json, dict) else {},
                 "created_at": now_iso,
             }
             for e in req.events[:MAX_BATCH_EVENTS]
         ]
-        sb.table("events_log").upsert(rows, on_conflict="event_id", ignore_duplicates=True).execute()
+        sb.table("quiz_telemetry").upsert(rows, on_conflict="id", ignore_duplicates=True).execute()
         inserted = len(rows)
 
     return {"status": "ok", "upserted_responses": upserted, "inserted_events": inserted}

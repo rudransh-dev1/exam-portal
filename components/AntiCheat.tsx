@@ -14,6 +14,7 @@
  */
 
 import { useEffect, useRef, useState, useCallback, ReactNode } from "react";
+import styles from "./AntiCheat.module.css";
 
 export interface AntiCheatProps {
   sessionId: string;
@@ -235,6 +236,13 @@ export default function AntiCheat({
 
       const ctrl = e.ctrlKey || e.metaKey;
       const key  = e.key.toLowerCase();
+      
+      if (key === "escape") {
+        e.preventDefault();
+        recordViolation("Attempted Escape Key");
+        return;
+      }
+      
       if (
         key === "f12" ||
         key === "printscreen" ||
@@ -277,88 +285,60 @@ export default function AntiCheat({
   return (
     <>
       {/* ── DYNAMIC WATERMARK ── */}
-      <div style={{
-        position: "fixed", inset: 0, zIndex: 10, pointerEvents: "none",
-        opacity: 0.04, display: "flex", flexWrap: "wrap", overflow: "hidden",
-        transform: "rotate(-15deg) scale(1.5)", userSelect: "none",
-      }}>
+      <div className={styles.watermark}>
         {Array.from({ length: 40 }).map((_, i) => (
-          <div key={i} style={{ padding: "60px", fontSize: "16px", fontWeight: "bold", color: "#fff" }}>
+          <div key={i} className={styles.watermarkCell}>
             {studentId} - {studentName}
           </div>
         ))}
       </div>
 
       {/* EXAM CONTENT — blurred when overlay is up */}
-      <div style={{ filter: overlayVisible ? "blur(35px) brightness(0.4)" : "none", transition: "filter 0.4s ease" }}>
+      <div className={`${styles.contentArea} ${overlayVisible ? styles.contentBlurred : ""}`}>
         {children}
       </div>
 
       {/* SECURITY OVERLAY */}
       {overlayVisible && (
-        <div style={{
-          position: "fixed", inset: 0, zIndex: 99999,
-          backgroundColor: "rgba(2, 6, 23, 0.98)", backdropFilter: "blur(20px)",
-          display: "flex", flexDirection: "column", alignItems: "center",
-          justifyContent: "center", color: "white", textAlign: "center",
-          fontFamily: "system-ui, sans-serif",
-        }}>
-          <div style={{ fontSize: "64px", marginBottom: "10px" }}>{terminated ? "🔴" : "⚠️"}</div>
-          <h1 style={{ color: terminated ? "#ef4444" : "#f59e0b", fontWeight: 900, letterSpacing: "-0.02em" }}>
+        <div className={styles.overlay}>
+          <div className={styles.overlayIcon}>{terminated ? "🔴" : "⚠️"}</div>
+          <h1 className={terminated ? styles.overlayTitleTerminated : styles.overlayTitleWarning}>
             {terminated ? "EXAM TERMINATED" : "SECURITY VIOLATION"}
           </h1>
-          <p style={{ color: "#94a3b8", marginBottom: "20px" }}>
-            Reason: <span style={{ color: "#fff" }}>{lastReason}</span>
+          <p className={styles.overlayReason}>
+            Reason: <span className={styles.overlayReasonHighlight}>{lastReason}</span>
           </p>
-          <div style={{ fontSize: "24px", fontWeight: 800, marginBottom: "15px" }}>
+          <div className={styles.strikeCount}>
             Strike {strikeCount} / {MAX_STRIKES}
           </div>
 
           {!terminated && (
-            <div style={{ marginBottom: "30px", color: "#f87171", fontWeight: 700, fontSize: "14px" }}>
+            <div className={styles.autoSubmitTimer}>
               AUTO-SUBMITTING IN {timerSeconds}s
             </div>
           )}
 
           {!terminated && (
-            <button
-              onClick={handleUnderstand}
-              style={{
-                padding: "16px 40px", background: "#2563eb", color: "#fff",
-                border: "none", borderRadius: "12px", fontWeight: 900,
-                cursor: "pointer", boxShadow: "0 10px 25px rgba(37,99,235,0.4)",
-              }}
-            >
+            <button onClick={handleUnderstand} className={styles.reenterBtn}>
               RE-ENTER SECURE MODE
             </button>
           )}
 
           {terminated && (
-            <div style={{ marginTop: "40px", display: "flex", flexDirection: "column", gap: "16px", alignItems: "center" }}>
+            <div className={styles.terminatedActions}>
               <button
                 onClick={() => window.location.href = "/dashboard?tab=History"}
-                style={{
-                  padding: "16px 40px", 
-                  background: "linear-gradient(135deg, #ef4444, #991b1b)", 
-                  color: "#fff",
-                  border: "none", 
-                  borderRadius: "12px", 
-                  fontWeight: 900,
-                  cursor: "pointer", 
-                  boxShadow: "0 10px 25px rgba(239,68,68,0.4)",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.05em",
-                }}
+                className={styles.dashboardBtn}
               >
                 RETURN TO DASHBOARD
               </button>
-              <p style={{ fontSize: "14px", color: "#64748b" }}>
+              <p className={styles.terminatedNote}>
                 Session recorded as terminated. Please contact your administrator.
               </p>
             </div>
           )}
 
-          <p style={{ marginTop: "30px", fontSize: "12px", color: "#475569" }}>
+          <p className={styles.sessionId}>
             Session ID: {sessionId}
           </p>
         </div>

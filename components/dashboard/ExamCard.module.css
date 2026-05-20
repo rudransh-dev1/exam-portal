@@ -12,6 +12,20 @@
   box-shadow: var(--nexus-shadow-glass);
 }
 
+.categoryBadge {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: #fff;
+  padding: 2px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.8;
+}
+
 .card::after {
   content: '';
   position: absolute;
@@ -160,4 +174,18 @@
 .svg {
   width: 100%;
   height: auto;
+}
+
+.countdown {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--nexus-orange);
+  padding: 0.5rem 0;
+  letter-spacing: 0.02em;
+}
+
+.scoreInfo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }

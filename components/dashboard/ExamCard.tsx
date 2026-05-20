@@ -13,6 +13,7 @@ interface ExamCardProps {
     total_marks?: number;
     attempt_count?: number;
     max_attempts?: number;
+    category?: string;
   };
   isUpcoming?: boolean;
   timeUntil?: string | null;
@@ -29,6 +30,9 @@ export default function ExamCard({ exam, isUpcoming, timeUntil, onLaunch }: Exam
       animate={{ opacity: 1, scale: 1 }}
       whileHover={{ y: -5 }}
     >
+      <div className={styles.categoryBadge} style={{ backgroundColor: `var(--category-${(exam.category || 'others').toLowerCase()})` }}>
+        {exam.category || 'Others'}
+      </div>
       <div className={styles.header}>
         <h3 className={styles.title}>{exam.exam_name}</h3>
         {exam.submitted ? (
@@ -84,14 +88,14 @@ export default function ExamCard({ exam, isUpcoming, timeUntil, onLaunch }: Exam
       <div className={styles.networkGraphic}>
         {/* Placeholder for the constellation graphic */}
         <svg viewBox="0 0 100 60" className={styles.svg}>
-          <circle cx="20" cy="20" r="1" fill="var(--nexus-cyan)" />
-          <circle cx="50" cy="10" r="1" fill="var(--nexus-cyan)" />
-          <circle cx="80" cy="30" r="1" fill="var(--nexus-cyan)" />
-          <circle cx="40" cy="50" r="1" fill="var(--nexus-cyan)" />
-          <line x1="20" y1="20" x2="50" y2="10" stroke="var(--nexus-cyan)" strokeWidth="0.2" opacity="0.5" />
-          <line x1="50" y1="10" x2="80" y2="30" stroke="var(--nexus-cyan)" strokeWidth="0.2" opacity="0.5" />
-          <line x1="80" y1="30" x2="40" y2="50" stroke="var(--nexus-cyan)" strokeWidth="0.2" opacity="0.5" />
-          <line x1="40" y1="50" x2="20" y2="20" stroke="var(--nexus-cyan)" strokeWidth="0.2" opacity="0.5" />
+          <circle cx="20" cy="20" r="1" fill={`var(--category-${(exam.category || 'others').toLowerCase()})`} />
+          <circle cx="50" cy="10" r="1" fill={`var(--category-${(exam.category || 'others').toLowerCase()})`} />
+          <circle cx="80" cy="30" r="1" fill={`var(--category-${(exam.category || 'others').toLowerCase()})`} />
+          <circle cx="40" cy="50" r="1" fill={`var(--category-${(exam.category || 'others').toLowerCase()})`} />
+          <line x1="20" y1="20" x2="50" y2="10" stroke={`var(--category-${(exam.category || 'others').toLowerCase()})`} strokeWidth="0.2" opacity="0.5" />
+          <line x1="50" y1="10" x2="80" y2="30" stroke={`var(--category-${(exam.category || 'others').toLowerCase()})`} strokeWidth="0.2" opacity="0.5" />
+          <line x1="80" y1="30" x2="40" y2="50" stroke={`var(--category-${(exam.category || 'others').toLowerCase()})`} strokeWidth="0.2" opacity="0.5" />
+          <line x1="40" y1="50" x2="20" y2="20" stroke={`var(--category-${(exam.category || 'others').toLowerCase()})`} strokeWidth="0.2" opacity="0.5" />
         </svg>
       </div>
     </motion.div>

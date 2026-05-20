@@ -441,7 +441,7 @@ export default function IngestPage() {
           <div className={styles.orbContainer} style={{ marginTop: 12 }}>
             <label className={styles.orbLabel}>Category Target</label>
             <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-              {["Aptitude", "Programming", "Others"].map(cat => (
+              {["Aptitude", "Programming", "Events", "Others"].map(cat => (
                 <button
                   key={cat}
                   onClick={() => setSelectedCategory(cat)}
@@ -449,7 +449,7 @@ export default function IngestPage() {
                   className={`${styles.orbInput} ${selectedCategory === cat ? styles.orbActive : ""}`}
                   style={{ flex: 1, padding: "10px", fontSize: 13, cursor: "pointer", border: selectedCategory === cat ? "1px solid #6366f1" : "1px solid rgba(255,255,255,0.05)" }}
                 >
-                  {cat === "Aptitude" ? "🧠" : cat === "Programming" ? "💻" : "📦"} {cat}
+                  {cat === "Aptitude" ? "🧠" : cat === "Programming" ? "💻" : cat === "Events" ? "📅" : "📦"} {cat}
                 </button>
               ))}
             </div>

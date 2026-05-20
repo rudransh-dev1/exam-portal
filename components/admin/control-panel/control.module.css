@@ -867,3 +867,144 @@
   color: rgba(148, 163, 184, 0.55);
   font-weight: 500;
 }
+
+/* ── Loading Skeleton ──────────────────────────────────────── */
+.skeletonLoading {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 64px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.skeletonGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+/* ── Toggle Row ────────────────────────────────────────────── */
+.toggleRow {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.toggleRowSidebar {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.attemptsField {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.attemptsLabel {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(148, 163, 184, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.attemptsSelect {
+  width: 80px;
+  height: 32px;
+  padding: 0 8px;
+}
+
+.toggleTrack {
+  width: 60px;
+  height: 32px;
+  border-radius: 999px;
+  position: relative;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  padding: 4px;
+  transition: all 0.3s ease;
+  margin-top: 16px;
+}
+
+.toggleTrackActive {
+  background: rgba(6, 182, 212, 0.15);
+  border: 1px solid rgba(6, 182, 212, 0.3);
+  box-shadow: 0 0 15px rgba(6, 182, 212, 0.2);
+}
+
+.toggleTrackInactive {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.toggleTrackSidebar {
+  composes: toggleTrack;
+  margin-top: 0;
+}
+
+.toggleKnob {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+}
+
+.toggleInfo {
+  display: flex;
+  flex-direction: column;
+  margin-top: 16px;
+}
+
+.toggleInfoSidebar {
+  display: flex;
+  flex-direction: column;
+}
+
+.toggleStatusText {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.toggleStatusActive {
+  color: #06b6d4;
+}
+
+.toggleStatusInactive {
+  color: rgba(148, 163, 184, 0.7);
+}
+
+.toggleHint {
+  font-size: 11px;
+  color: rgba(148, 163, 184, 0.5);
+}
+
+/* ── Divider Section ───────────────────────────────────────── */
+.dividerSection {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.policyHint {
+  font-size: 11px;
+  color: rgba(148, 163, 184, 0.5);
+  margin-top: 8px;
+}
+
+.quizStatusCol {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.quizStatusTitleHint {
+  font-size: 11px;
+  color: rgba(148, 163, 184, 0.6);
+}
+

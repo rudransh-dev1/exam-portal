@@ -969,3 +969,352 @@
     border-radius: 10px !important;
   }
 }
+
+/* ── Result Screen ─────────────────────────────────────────── */
+.resultOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: radial-gradient(ellipse at 50% 30%, #0f172a 0%, #060b18 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.resultPanel {
+  position: relative;
+  width: 100%;
+  max-width: 460px;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 24px;
+  padding: 40px 32px;
+  box-shadow: 0 32px 80px rgba(0,0,0,0.6);
+  text-align: center;
+}
+
+.resultBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(16,185,129,0.12);
+  border: 1px solid rgba(16,185,129,0.3);
+  border-radius: 999px;
+  padding: 4px 14px;
+  margin-bottom: 24px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #10b981;
+  letter-spacing: 1px;
+}
+
+.scoreRing {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 8px;
+  position: relative;
+}
+
+.scoreRingInner {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background: #0f172a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+}
+
+.scorePercent {
+  font-size: 26px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.scoreLabel {
+  font-size: 10px;
+  color: rgba(255,255,255,0.4);
+  margin-top: 2px;
+}
+
+.resultTitle {
+  font-size: 22px;
+  font-weight: 800;
+  color: #fff;
+  margin: 16px 0 4px;
+  letter-spacing: -0.02em;
+}
+
+.resultSubtitle {
+  font-size: 13px;
+  color: rgba(255,255,255,0.45);
+  margin-bottom: 28px;
+}
+
+.resultStatsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 28px;
+}
+
+.resultStatCard {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 12px;
+  padding: 12px 8px;
+}
+
+.resultStatValue {
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.resultStatLabel {
+  font-size: 10px;
+  color: rgba(255,255,255,0.4);
+  margin-top: 3px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.resultViewBtn {
+  width: 100%;
+  padding: 14px;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  border: none;
+  border-radius: 12px;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  letter-spacing: 0.5px;
+  box-shadow: 0 8px 24px rgba(59,130,246,0.35);
+}
+
+.resultRedirectHint {
+  margin-top: 14px;
+  font-size: 12px;
+  color: rgba(255,255,255,0.25);
+}
+
+/* ── Exam Header Bar ───────────────────────────────────────── */
+.headerBarWrap {
+  padding: 16px 28px 0;
+  z-index: 2;
+  position: relative;
+}
+
+.headerBar {
+  background: var(--panel-glass);
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+  padding: 16px 28px;
+  border-radius: 20px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid var(--rim-metal);
+}
+
+.headerBarTitle {
+  font-size: 16px;
+  margin: 0;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.cacheTag {
+  font-size: 10px;
+  background: rgba(40, 215, 214, 0.15);
+  color: var(--accent-cool);
+  border-radius: 6px;
+  padding: 2px 7px;
+  margin-left: 6px;
+  font-weight: 700;
+  vertical-align: middle;
+}
+
+.headerSubtext {
+  font-weight: 400;
+  opacity: 0.7;
+  color: var(--text-secondary);
+}
+
+.headerAvatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--accent-cool-grad);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 700;
+  font-size: 16px;
+  box-shadow: 0 4px 12px rgba(40, 215, 214, 0.3);
+  flex-shrink: 0;
+}
+
+/* ── Secure Badge ──────────────────────────────────────────── */
+.secureBadge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-radius: 10px;
+  padding: 5px 10px;
+  color: #10b981;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  flex-shrink: 0;
+}
+
+.secureDot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #10b981;
+  animation: pulseGlow 2s infinite;
+  box-shadow: 0 0 8px #10b981;
+}
+
+/* ── Warning Badge ─────────────────────────────────────────── */
+.warningBadge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 8px;
+  padding: 4px 8px;
+  font-weight: 800;
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+.warningCritical {
+  background: rgba(239,68,68,0.12);
+  border: 1px solid rgba(239,68,68,0.4);
+  color: #f87171;
+}
+
+.warningMild {
+  background: rgba(245,158,11,0.1);
+  border: 1px solid rgba(245,158,11,0.3);
+  color: #fbbf24;
+}
+
+.warningNone {
+  background: transparent;
+  border: 1px solid transparent;
+  color: rgba(148,163,184,0.5);
+}
+
+.questionCol {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ── Confirm Submit Modal ──────────────────────────────────── */
+.confirmOverlayFull {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: rgba(5, 5, 10, 0.75);
+  backdrop-filter: blur(20px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.confirmContent {
+  background: linear-gradient(165deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 32px;
+  padding: 48px;
+  max-width: 500px;
+  width: 90%;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.confirmIcon {
+  font-size: 64px;
+  margin-bottom: 24px;
+}
+
+.confirmTitle {
+  font-size: 32px;
+  font-weight: 900;
+  color: #fff;
+  margin-bottom: 12px;
+}
+
+.confirmDesc {
+  color: rgba(148, 163, 184, 0.8);
+  font-size: 17px;
+  line-height: 1.6;
+  margin-bottom: 40px;
+}
+
+.confirmBtnGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.confirmYesBtn {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: #fff;
+  border: none;
+  padding: 18px;
+  border-radius: 20px;
+  font-weight: 900;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.confirmNoBtn {
+  background: rgba(255, 255, 255, 0.03);
+  color: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 16px;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+/* ── Sidebar Review Section ────────────────────────────────── */
+.sidebarReviewSection {
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.flagDot {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 10px;
+  height: 10px;
+  background: #eab308;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 0 6px rgba(234,179,8,0.6);
+}
+
+

@@ -5,6 +5,7 @@
  */
 "use client";
 import React from "react";
+import s from "./SyncStatusBar.module.css";
 
 type SyncStatus = "idle" | "syncing" | "offline" | "degraded" | "error";
 
@@ -37,33 +38,11 @@ export default function SyncStatusBar({ syncStatus, lastSyncedAt, offlineMsg }: 
   return (
     <>
       {/* Floating status pill */}
-      <div style={{
-        position:   "fixed",
-        bottom:     isMobile ? "auto" : "16px",
-        top:        isMobile ? "16px" : "auto",
-        right:      "16px",
-        zIndex:     10000,
-        display:    "flex",
-        flexDirection: "column",
-        alignItems: "flex-end",
-        gap:        "8px",
-      }}>
+      <div className={`${s.wrapper} ${isMobile ? s.wrapperMobile : s.wrapperDesktop}`}>
         {/* Offline / degraded banner */}
         {offlineMsg && (
-          <div style={{
-            background: "var(--panel-glass)",
-            backdropFilter: "blur(20px)",
-            border: "1px solid #f97316",
-            color: "#fed7aa",
-            padding: "12px 20px",
-            borderRadius: "16px",
-            fontSize: "14px",
-            maxWidth: "340px",
-            lineHeight: "1.5",
-            boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
-            animation: "fadeIn 0.3s ease",
-          }}>
-            <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+          <div className={s.banner}>
+            <div className={s.bannerInner}>
               <span>⚠️</span>
               <div>
                 {offlineMsg}
@@ -73,23 +52,11 @@ export default function SyncStatusBar({ syncStatus, lastSyncedAt, offlineMsg }: 
         )}
 
         {/* Status pill */}
-        <div style={{
-          background: "var(--panel-glass)",
-          backdropFilter: "blur(20px)",
-          border: `1px solid ${cfg.color}66`,
-          padding: "8px 16px",
-          borderRadius: "99px",
-          display: "flex",
-          alignItems: "center",
-          gap: "10px",
-          fontSize: "13px",
-          color: "var(--text-primary)",
-          boxShadow: "0 4px 15px rgba(0,0,0,0.4)",
-        }}>
-          <div style={{ width: 8, height: 8, borderRadius: "50%", background: cfg.color, boxShadow: `0 0 10px ${cfg.color}` }} />
-          <span style={{ color: cfg.color, fontWeight: 700, letterSpacing: "0.02em" }}>{cfg.label}</span>
+        <div className={s.pill} style={{ borderColor: `${cfg.color}66` }}>
+          <div className={s.dot} style={{ background: cfg.color, boxShadow: `0 0 10px ${cfg.color}` }} />
+          <span className={s.label} style={{ color: cfg.color }}>{cfg.label}</span>
           {lastSyncedAt && syncStatus === "idle" && (
-            <span style={{ color: "var(--text-secondary)", fontSize: "11px", fontWeight: 500 }}>
+            <span className={s.syncTime} suppressHydrationWarning>
               Synced {lastSyncedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
             </span>
           )}

@@ -22,7 +22,12 @@ function formatTime(seconds: number): string {
 export default function ExamTimer({ startTime, durationMinutes, onExpire }: ExamTimerProps) {
   const [remaining, setRemaining] = useState<number>(0);
   const [percentage, setPercentage] = useState<number>(100);
+  const onExpireRef = useRef(onExpire);
   const expiredRef = useRef(false);
+  
+  useEffect(() => {
+    onExpireRef.current = onExpire;
+  }, [onExpire]);
 
   useEffect(() => {
     const totalMs = durationMinutes * 60 * 1000;
@@ -45,12 +50,12 @@ export default function ExamTimer({ startTime, durationMinutes, onExpire }: Exam
       if (secs <= 0 && !expiredRef.current) {
         expiredRef.current = true;
         clearInterval(id);
-        onExpire();
+        onExpireRef.current();
       }
     }, 1000);
 
     return () => clearInterval(id);
-  }, [startTime, durationMinutes, onExpire]);
+  }, [startTime, durationMinutes]);
 
   // HSL Color logic: 120 is Green, 60 is Yellow, 0 is Red. 
   // We map 100% -> 120 hue, 0% -> 0 hue.

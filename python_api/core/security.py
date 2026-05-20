@@ -1,11 +1,48 @@
+# --- MONKEYPATCH FOR PYTHON 3.13 & PASSLIB BCRYPT COMPATIBILITY ---
+import bcrypt
+if not hasattr(bcrypt, "__about__"):
+    class DummyAbout:
+        __version__ = getattr(bcrypt, "__version__", "4.0.0")
+    bcrypt.__about__ = DummyAbout()
+
+# Patch bcrypt.hashpw and checkpw to truncate >72 byte passwords instead of throwing ValueError
+_original_hashpw = bcrypt.hashpw
+def _patched_hashpw(password, salt):
+    if isinstance(password, str):
+        password = password.encode("utf-8")
+    if len(password) > 72:
+        password = password[:72]
+    return _original_hashpw(password, salt)
+bcrypt.hashpw = _patched_hashpw
+
+_original_checkpw = getattr(bcrypt, "checkpw", None)
+if _original_checkpw:
+    def _patched_checkpw(password, hashed_password):
+        if isinstance(password, str):
+            password = password.encode("utf-8")
+        if len(password) > 72:
+            password = password[:72]
+        if isinstance(hashed_password, str):
+            hashed_password = hashed_password.encode("utf-8")
+        return _original_checkpw(password, hashed_password)
+    bcrypt.checkpw = _patched_checkpw
+
+import passlib.handlers.bcrypt
+passlib.handlers.bcrypt.detect_wrap_bug = lambda ident: False
+# -----------------------------------------------------------------
+
+
 from datetime import datetime, timedelta, timezone
+import hashlib
 from typing import Optional
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
+
 from core.config import get_settings
+from db.supabase_client import get_supabase
 
 settings = get_settings()
 
@@ -16,12 +53,28 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 bearer_scheme = HTTPBearer(auto_error=False)
 
 
+def _pre_hash(password: str) -> str:
+    """Pre-hash password using SHA-256 to fit within bcrypt's 72-byte limit."""
+    return hashlib.sha256(password.encode("utf-8")).hexdigest()
+
+
 def hash_password(password: str) -> str:
-    return pwd_context.hash(password)
+    return pwd_context.hash(_pre_hash(password))
 
 
 def verify_password(plain: str, hashed: str) -> bool:
-    return pwd_context.verify(plain, hashed)
+    # 1. Attempt verification with SHA-256 pre-hashed password (new scheme)
+    try:
+        if pwd_context.verify(_pre_hash(plain), hashed):
+            return True
+    except Exception:
+        pass
+
+    # 2. Fallback to standard verification for legacy direct bcrypt passwords
+    try:
+        return pwd_context.verify(plain, hashed)
+    except Exception:
+        return False
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:

@@ -2,7 +2,7 @@
 
 
 import { useCallback, useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { LazyMotion, domAnimation, m } from "framer-motion";
 import styles from "./control.module.css";
 import Skeleton from "@/components/Skeleton";
 
@@ -111,13 +111,10 @@ function ActionCard({
 }
 
 export default function OrbitalControlPage() {
-  const [mounted, setMounted] = useState(false);
   const [config, setConfig] = useState<ExamConfig>(defaultConfig);
   const [saving, setSaving] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [loading, setLoading] = useState(true);
   const [activeView, setActiveView] = useState<"dashboard" | "settings">("dashboard");
@@ -198,6 +195,7 @@ export default function OrbitalControlPage() {
   }, []);
 
   useEffect(() => {
+    setMounted(true);
     fetchConfig();
     fetchStats();
   }, [fetchConfig, fetchStats]);
@@ -290,10 +288,10 @@ export default function OrbitalControlPage() {
 
   if (loading) {
     return (
-      <div style={{ display: "flex", flexDirection: "column", gap: 20, padding: 64, maxWidth: 600, margin: "0 auto" }}>
+      <div className={styles.skeletonLoading}>
         <Skeleton height={200} borderRadius={100} width={200} className="mx-auto" />
         <Skeleton height={40} width="60%" />
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+        <div className={styles.skeletonGrid}>
           <Skeleton height={120} borderRadius={20} />
           <Skeleton height={120} borderRadius={20} />
         </div>
@@ -473,62 +471,49 @@ export default function OrbitalControlPage() {
               </div>
 
               {/* Active/Inactive Luminous Toggle */}
-              <div style={{ display: "flex", gap: "16px", alignItems: "center", marginBottom: "24px" }}>
-                <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                  <label style={{ fontSize: "11px", fontWeight: 700, color: "rgba(148,163,184,0.6)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Attempts</label>
+              <LazyMotion features={domAnimation}>
+              <div className={styles.toggleRow}>
+                <div className={styles.attemptsField}>
+                  <label className={styles.attemptsLabel}>Attempts</label>
                   <select
-                    className={styles.markSelect}
-                    style={{ width: "80px", height: "32px", padding: "0 8px" }}
+                    className={`${styles.markSelect} ${styles.attemptsSelect}`}
                     value={config.max_attempts}
                     onChange={(e) => setConfig((c) => ({ ...c, max_attempts: Number(e.target.value) }))}
                   >
-                    {[1, 2, 3, 5, 10].map((m) => (
-                      <option key={m} value={m}>{m}</option>
+                    {[1, 2, 3, 5, 10].map((v) => (
+                      <option key={v} value={v}>{v}</option>
                     ))}
                   </select>
                 </div>
 
                 <div
-                  style={{
-                    width: "60px",
-                    height: "32px",
-                    borderRadius: "999px",
-                    background: config.is_active ? "rgba(6,182,212,0.15)" : "rgba(255,255,255,0.05)",
-                    border: `1px solid ${config.is_active ? "rgba(6,182,212,0.3)" : "rgba(255,255,255,0.1)"}`,
-                    position: "relative",
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    padding: "4px",
-                    boxShadow: config.is_active ? "0 0 15px rgba(6,182,212,0.2)" : "none",
-                    transition: "all 0.3s ease",
-                    marginTop: "16px",
-                  }}
+                  className={`${styles.toggleTrack} ${config.is_active ? styles.toggleTrackActive : styles.toggleTrackInactive}`}
+                  role="switch"
+                  aria-checked={config.is_active}
+                  tabIndex={0}
                   onClick={() => setConfig(c => ({ ...c, is_active: !c.is_active }))}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setConfig(c => ({ ...c, is_active: !c.is_active })); } }}
                 >
-                  <motion.div
+                  <m.div
                     animate={{ 
                       x: config.is_active ? 28 : 0,
                       boxShadow: config.is_active ? "0 0 12px #06b6d4, inset 0 0 4px #fff" : "0 0 0px transparent",
                       backgroundColor: config.is_active ? "#06b6d4" : "#475569"
                     }}
                     transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                    style={{
-                      width: "22px",
-                      height: "22px",
-                      borderRadius: "50%",
-                    }}
+                    className={styles.toggleKnob}
                   />
                 </div>
-                <div style={{ display: "flex", flexDirection: "column", marginTop: "16px" }}>
-                  <span style={{ fontSize: "14px", fontWeight: 700, color: config.is_active ? "#06b6d4" : "rgba(148,163,184,0.7)", letterSpacing: "0.02em" }}>
+                <div className={styles.toggleInfo}>
+                  <span className={`${styles.toggleStatusText} ${config.is_active ? styles.toggleStatusActive : styles.toggleStatusInactive}`}>
                     {config.is_active ? "Luminous (Active)" : "Latent (Deactivated)"}
                   </span>
-                  <span style={{ fontSize: "11px", color: "rgba(148,163,184,0.5)" }}>
+                  <span className={styles.toggleHint}>
                     {config.is_active ? "Students can discover this exam." : "Exam is invisible to students."}
                   </span>
                 </div>
               </div>
+              </LazyMotion>
 
               {/* Preview Quiz */}
               <button className={styles.previewBtn} onClick={() => window.open('/dashboard?preview=true', '_blank')}>
@@ -581,9 +566,9 @@ export default function OrbitalControlPage() {
 
               {/* Quiz Status Indicator */}
               <div className={styles.quizStatusRow}>
-                <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                <div className={styles.quizStatusCol}>
                   <span className={styles.quizStatusLabel}>Quiz Status</span>
-                  <span style={{ fontSize: "11px", color: "rgba(148,163,184,0.6)" }}>{config.exam_title}</span>
+                  <span className={styles.quizStatusTitleHint}>{config.exam_title}</span>
                 </div>
                 <span className={`${styles.quizStatusBadge} ${config.is_active ? styles.quizStatusActive : styles.quizStatusInactive}`}>
                   {config.is_active ? "● Active" : "○ Inactive"}
@@ -597,7 +582,7 @@ export default function OrbitalControlPage() {
                 disabled={saving}
               >
                 {saving ? (
-                  <><div className="spinner" style={{ width: 16, height: 16, borderColor: "rgba(255,255,255,0.3)", borderTopColor: "#fff" }} /> Saving…</>
+                  <>Saving…</>
                 ) : saveSuccess ? (
                   "✓ Saved!"
                 ) : (
@@ -761,40 +746,28 @@ export default function OrbitalControlPage() {
             {/* Current Status */}
             <div className={styles.settingsSectionCard}>
               {/* Luminous Status Toggle */}
-              <div style={{ display: "flex", gap: "16px", alignItems: "center", marginBottom: "16px" }}>
+              <LazyMotion features={domAnimation}>
+              <div className={styles.toggleRowSidebar}>
                 <div
-                  style={{
-                    width: "60px",
-                    height: "32px",
-                    borderRadius: "999px",
-                    background: config.is_active ? "rgba(6,182,212,0.15)" : "rgba(255,255,255,0.05)",
-                    border: `1px solid ${config.is_active ? "rgba(6,182,212,0.3)" : "rgba(255,255,255,0.1)"}`,
-                    position: "relative",
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    padding: "4px",
-                    boxShadow: config.is_active ? "0 0 15px rgba(6,182,212,0.2)" : "none",
-                    transition: "all 0.3s ease",
-                  }}
+                  className={`${styles.toggleTrackSidebar} ${config.is_active ? styles.toggleTrackActive : styles.toggleTrackInactive}`}
+                  role="switch"
+                  aria-checked={config.is_active}
+                  tabIndex={0}
                   onClick={() => setConfig(c => ({ ...c, is_active: !c.is_active }))}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setConfig(c => ({ ...c, is_active: !c.is_active })); } }}
                 >
-                  <motion.div
+                  <m.div
                     animate={{ 
                       x: config.is_active ? 28 : 0,
                       boxShadow: config.is_active ? "0 0 12px #06b6d4, inset 0 0 4px #fff" : "0 0 0px transparent",
                       backgroundColor: config.is_active ? "#06b6d4" : "#475569"
                     }}
                     transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                    style={{
-                      width: "22px",
-                      height: "22px",
-                      borderRadius: "50%",
-                    }}
+                    className={styles.toggleKnob}
                   />
                 </div>
-                <div style={{ display: "flex", flexDirection: "column" }}>
-                  <span style={{ fontSize: "14px", fontWeight: 700, color: config.is_active ? "#06b6d4" : "rgba(148,163,184,0.7)", letterSpacing: "0.02em" }}>
+                <div className={styles.toggleInfoSidebar}>
+                  <span className={`${styles.toggleStatusText} ${config.is_active ? styles.toggleStatusActive : styles.toggleStatusInactive}`}>
                     {config.is_active ? "Luminous (Active)" : "Latent (Deactivated)"}
                   </span>
                 </div>
@@ -807,18 +780,19 @@ export default function OrbitalControlPage() {
                 <span className={styles.currentStatusLabel}>Current Status</span>
               </div>
 
-              <div style={{ marginTop: 24, paddingTop: 24, borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+              </LazyMotion>
+              <div className={styles.dividerSection}>
                 <label className={styles.settingsLabel}>Attempt Policy</label>
                 <select
                   className={styles.settingsSelect}
                   value={config.max_attempts}
                   onChange={(e) => setConfig((c) => ({ ...c, max_attempts: Number(e.target.value) }))}
                 >
-                  {[1, 2, 3, 5, 10, 100].map((m) => (
-                    <option key={m} value={m}>{m === 100 ? "Unlimited" : `${m} Attempt${m > 1 ? "s" : ""}`}</option>
+                  {[1, 2, 3, 5, 10, 100].map((v) => (
+                    <option key={v} value={v}>{v === 100 ? "Unlimited" : `${v} Attempt${v > 1 ? "s" : ""}`}</option>
                   ))}
                 </select>
-                <p style={{ fontSize: "11px", color: "rgba(148,163,184,0.5)", marginTop: 8 }}>
+                <p className={styles.policyHint}>
                   Restricts how many times a student can take this specific quiz.
                 </p>
               </div>

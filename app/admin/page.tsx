@@ -145,49 +145,23 @@ function ExportButton({ quizzes }: { quizzes: BranchExamSummary[] }) {
   const quizNames = Array.from(new Set(quizzes.map(q => q.exam_name)));
 
   return (
-    <div style={{ position: "relative" }} ref={menuRef}>
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
+    <div className={styles.posRel} ref={menuRef}>
+      <div className={styles.colEnd}>
         <button
           id="export-btn"
           onClick={() => setShowMenu(!showMenu)}
           disabled={phase === "streaming"}
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 8,
-            padding: "8px 18px",
-            borderRadius: 10,
-            fontSize: 13,
-            fontWeight: 600,
-            cursor: phase === "streaming" ? "not-allowed" : "pointer",
-            border: "1px solid rgba(139,92,246,0.35)",
-            background: phase === "done"
-              ? "rgba(16,185,129,0.12)"
-              : "rgba(139,92,246,0.1)",
-            color: phase === "done" ? "#34d399" : "#a78bfa",
-            transition: "all 0.3s ease",
-            position: "relative",
-            overflow: "hidden",
-            zIndex: 1,
-          }}
+          className={`${styles.exportBtn} ${phase === "done" ? styles.exportBtnDone : ""}`}
         >
           {phase === "streaming" && (
-            <span
-              style={{
-                position: "absolute",
-                inset: 0,
-                background: "linear-gradient(90deg, transparent, rgba(139,92,246,0.25), transparent)",
-                backgroundSize: "200% 100%",
-                animation: "shimmerExport 1s linear infinite",
-              }}
-            />
+            <span className={styles.exportShimmer} />
           )}
-          <span style={{ fontSize: 16 }}>
+          <span className={styles.btnIcon}>
             {phase === "streaming" ? "☁️" : phase === "done" ? "✓" : "📊"}
           </span>
           {phase === "streaming" ? "Streaming data…" : phase === "done" ? "Downloaded!" : "Export Results"}
         </button>
-        {error && <span style={{ fontSize: 11, color: "#f87171" }}>{error}</span>}
+        {error && <span className={styles.errorHint}>{error}</span>}
       </div>
 
       <AnimatePresence>
@@ -196,45 +170,30 @@ function ExportButton({ quizzes }: { quizzes: BranchExamSummary[] }) {
             initial={{ opacity: 0, y: 10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
-            style={{
-              position: "absolute",
-              top: "calc(100% + 8px)",
-              right: 0,
-              width: 240,
-              background: "rgba(8, 12, 24, 0.98)",
-              backdropFilter: "blur(24px)",
-              border: "1px solid rgba(255, 255, 255, 0.15)",
-              borderRadius: 12,
-              boxShadow: "0 10px 40px rgba(0,0,0,0.5)",
-              padding: "8px",
-              zIndex: 100,
-              overflow: "hidden",
-            }}
+            className={styles.exportMenu}
           >
-            <div style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.5)", padding: "4px 8px 8px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+            <div className={styles.exportMenuTitle}>
               Select Quiz to Download
             </div>
             <button 
-              className={styles.menuItem} 
+              className={styles.exportMenuItem} 
               onClick={() => doExport("all")}
-              style={{ width: "100%", textAlign: "left", padding: "8px 12px", borderRadius: 8, border: "none", background: "transparent", cursor: "pointer", display: "flex", gap: 8, alignItems: "center" }}
             >
-              <span style={{ opacity: 0.6 }}>📦</span>
-              <span style={{ fontWeight: 600, fontSize: 13 }}>All Results (Universal)</span>
+              <span className={styles.exportMenuIcon}>📦</span>
+              <span className={styles.exportMenuLabel}>All Results (Universal)</span>
             </button>
-            <div style={{ height: 1, background: "var(--border)", margin: "4px 0" }} />
-            <div style={{ maxHeight: 200, overflowY: "auto" }}>
+            <div className={styles.exportMenuDivider} />
+            <div className={styles.exportMenuScroll}>
               {quizNames.length === 0 ? (
-                <div style={{ padding: "12px", textAlign: "center", fontSize: 12, color: "rgba(255,255,255,0.4)" }}>No quizzes discovered</div>
+                <div className={styles.exportMenuEmpty}>No quizzes discovered</div>
               ) : quizNames.map(name => (
                 <button 
                   key={name}
-                  className={styles.menuItem}
+                  className={styles.exportMenuItem}
                   onClick={() => doExport(name)}
-                  style={{ width: "100%", textAlign: "left", padding: "8px 12px", borderRadius: 8, border: "none", background: "transparent", cursor: "pointer", display: "flex", gap: 8, alignItems: "center" }}
                 >
-                  <span style={{ opacity: 0.6 }}>📝</span>
-                  <span style={{ fontSize: 13, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{name}</span>
+                  <span className={styles.exportMenuIcon}>📝</span>
+                  <span className={styles.exportMenuNameLabel}>{name}</span>
                 </button>
               ))}
             </div>
@@ -456,7 +415,6 @@ export default function AdminPage() {
                 placeholder="Access Key"
                 value={pass}
                 onChange={(e) => setPass(e.target.value)}
-                autoFocus
               />
             </div>
             
@@ -492,7 +450,7 @@ export default function AdminPage() {
     { id: "monitor",     label: "Monitor",     icon: "📡" },
     { id: "dashboard",   label: "Dashboard",   icon: "📊" },
     { id: "leaderboard", label: "Leaderboard", icon: "⚡" },
-    { id: "questions",   label: "Questions",   icon: "📋" },
+    { id: "questions",   label: "Exam",        icon: "📋" },
     { id: "students",    label: "Students",    icon: "👥" },
     { id: "ingest",      label: "Harvester",   icon: "🌌" },
     // { id: "control",     label: "Control",     icon: "🛸" },  // Commented out – not needed yet
@@ -554,90 +512,40 @@ export default function AdminPage() {
       {activeTab === "monitor" && (
         <>
           {/* ── Canva-Style 3 Hero Stat Cards ── */}
-          <div style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(3, 1fr)",
-            gap: 20,
-            padding: "20px 24px 0",
-          }}>
+          <div className={styles.heroGrid}>
             {/* Active Students */}
-            <div style={{
-              background: "var(--bg-card)",
-              border: "1px solid var(--border)",
-              borderRadius: 16,
-              padding: "22px 24px",
-              display: "flex",
-              alignItems: "center",
-              gap: 18,
-              boxShadow: "var(--shadow-card)",
-            }}>
-              <div style={{
-                width: 52, height: 52, borderRadius: 14,
-                background: "rgba(25,118,210,0.1)",
-                border: "1px solid rgba(25,118,210,0.2)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 24, flexShrink: 0,
-              }}>👥</div>
+            <div className={styles.statCard}>
+              <div className={styles.statIcon} style={{ background: "rgba(25,118,210,0.1)", border: "1px solid rgba(25,118,210,0.2)" }}>👥</div>
               <div>
-                <div style={{ fontSize: 32, fontWeight: 800, letterSpacing: "-0.03em", color: "var(--text-primary)", lineHeight: 1 }}>
+                <div className={styles.statValue}>
                   {active}
-                  <span style={{ fontSize: 13, fontWeight: 500, color: "var(--text-muted)", marginLeft: 8 }}>
+                  <span className={styles.statSub}>
                     ({idle} stale/idle)
                   </span>
                 </div>
-                <div style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 4, fontWeight: 500 }}>Active Students</div>
+                <div className={styles.statLabel}>Active Students</div>
               </div>
             </div>
 
             {/* Total Violations */}
-            <div style={{
-              background: "var(--bg-card)",
-              border: "1px solid var(--border)",
-              borderRadius: 16,
-              padding: "22px 24px",
-              display: "flex",
-              alignItems: "center",
-              gap: 18,
-              boxShadow: "var(--shadow-card)",
-            }}>
-              <div style={{
-                width: 52, height: 52, borderRadius: 14,
-                background: "rgba(237,108,2,0.1)",
-                border: "1px solid rgba(237,108,2,0.2)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 24, flexShrink: 0,
-              }}>⚠️</div>
+            <div className={styles.statCard}>
+              <div className={styles.statIcon} style={{ background: "rgba(237,108,2,0.1)", border: "1px solid rgba(237,108,2,0.2)" }}>⚠️</div>
               <div>
-                <div style={{ fontSize: 32, fontWeight: 800, letterSpacing: "-0.03em", color: "var(--warning)", lineHeight: 1 }}>
+                <div className={styles.statValue} style={{ color: "var(--warning)" }}>
                   {students.reduce((sum, s) => sum + (s.warnings || 0), 0)}
                 </div>
-                <div style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 4, fontWeight: 500 }}>Total Violations</div>
+                <div className={styles.statLabel}>Total Violations</div>
               </div>
             </div>
 
             {/* Completed Quizzes */}
-            <div style={{
-              background: "var(--bg-card)",
-              border: "1px solid var(--border)",
-              borderRadius: 16,
-              padding: "22px 24px",
-              display: "flex",
-              alignItems: "center",
-              gap: 18,
-              boxShadow: "var(--shadow-card)",
-            }}>
-              <div style={{
-                width: 52, height: 52, borderRadius: 14,
-                background: "rgba(46,125,50,0.1)",
-                border: "1px solid rgba(46,125,50,0.2)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 24, flexShrink: 0,
-              }}>✅</div>
+            <div className={styles.statCard}>
+              <div className={styles.statIcon} style={{ background: "rgba(46,125,50,0.1)", border: "1px solid rgba(46,125,50,0.2)" }}>✅</div>
               <div>
-                <div style={{ fontSize: 32, fontWeight: 800, letterSpacing: "-0.03em", color: "var(--success)", lineHeight: 1 }}>
+                <div className={styles.statValue} style={{ color: "var(--success)" }}>
                   {submitted}
                 </div>
-                <div style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 4, fontWeight: 500 }}>Completed Quizzes</div>
+                <div className={styles.statLabel}>Completed Quizzes</div>
               </div>
             </div>
           </div>
@@ -752,7 +660,7 @@ export default function AdminPage() {
       {/* activeTab === "grading"     && <GradingQueue /> */}
       {activeTab === "ingest"      && <IngestPage />}
       {activeTab === "control"     && <OrbitalControl />}
-      {activeTab === "questions"   && <QuestionsTab />}
+      {activeTab === "questions"   && <QuestionsTab students={students} />}
       {activeTab === "students"    && <StudentsTab />}
       {activeTab === "sos"         && <SOSAdminPage />}
       {activeTab === "pyhunt"      && <PyHuntAdminTab />}
@@ -906,8 +814,8 @@ function WarningBadge({ count }: { count: number }) {
 }
 
 
-// ── Questions Tab (unchanged logic, kept here) ────────────────
-function QuestionsTab() {
+// ── Exam Tab (formerly Questions Tab) ────────────────
+function QuestionsTab({ students }: { students: StudentRow[] }) {
   const [questions, setQuestions] = useState<AdminQuestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -1197,7 +1105,7 @@ function QuestionsTab() {
     <div className={adminStyles.managementPage}>
       <div className={adminStyles.header}>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <h2 className={adminStyles.headerTitle}>Questions ({filteredQuestions.length})</h2>
+          <h2 className={adminStyles.headerTitle}>Exam ({filteredQuestions.length})</h2>
           <select className={adminStyles.input} style={{ width: 140, height: 36, padding: "0 8px", fontSize: 13 }}
             value={selectedBranch} onChange={(e) => setSelectedBranch(e.target.value)}>
             <option value="All">All Branches</option>
@@ -1212,11 +1120,13 @@ function QuestionsTab() {
           </select>
         </div>
         <button className="btn btn-primary" onClick={() => { setEditing(null); setFormData({ text: "", options: ["", "", "", ""], branch: "CS", correct_answer: "", order_index: questions.length, marks: 1, exam_name: "General Assessment", image_url: "", category: "Others" }); setShowModal(true); }}>
-          + Add Question
+          + Add
         </button>
       </div>
 
-      {loading ? (
+      <div style={{ display: "flex", gap: 24, alignItems: "flex-start" }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {loading ? (
         <div style={{ display: "flex", justifyContent: "center", padding: 48 }}><div className="spinner" style={{ width: 32, height: 32 }} /></div>
       ) : filteredQuestions.length === 0 ? (
         <div className={adminStyles.empty}>No questions found for branch: {selectedBranch}</div>
@@ -1435,6 +1345,13 @@ function QuestionsTab() {
           </AnimatePresence>
         </div>
       )}
+      </div>
+
+      {/* Right side events feed */}
+      <div style={{ width: 340, flexShrink: 0, position: "sticky", top: 24 }}>
+        <ViolationAlertsFeed students={students} />
+      </div>
+      </div>
 
       {showModal && (
         <div className={adminStyles.modalOverlay} onClick={() => setShowModal(false)}>
@@ -1934,7 +1851,10 @@ function StudentsTab() {
       .on("postgres_changes", { event: "*", schema: "public", table: "exam_status" }, () => load())
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      channel.unsubscribe();
+      supabase.removeChannel(channel);
+    };
   }, [load]);
 
 

@@ -1,0 +1,135 @@
+/* ══════════════════════════════════════════════════════════════
+   AntiCheat – Security Overlay Styles
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Dynamic Watermark ── */
+.watermark {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
+  opacity: 0.04;
+  display: flex;
+  flex-wrap: wrap;
+  overflow: hidden;
+  transform: rotate(-15deg) scale(1.5);
+  user-select: none;
+}
+
+.watermarkCell {
+  padding: 60px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+}
+
+/* ── Content Blur ── */
+.contentArea {
+  transition: filter 0.4s ease;
+}
+
+.contentBlurred {
+  filter: blur(35px) brightness(0.4);
+}
+
+/* ── Security Overlay ── */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background-color: rgba(2, 6, 23, 0.98);
+  backdrop-filter: blur(20px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  text-align: center;
+  font-family: system-ui, sans-serif;
+}
+
+.overlayIcon {
+  font-size: 64px;
+  margin-bottom: 10px;
+}
+
+.overlayTitle {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.overlayTitleWarning {
+  composes: overlayTitle;
+  color: #f59e0b;
+}
+
+.overlayTitleTerminated {
+  composes: overlayTitle;
+  color: #ef4444;
+}
+
+.overlayReason {
+  color: #94a3b8;
+  margin-bottom: 20px;
+}
+
+.overlayReasonHighlight {
+  color: #fff;
+}
+
+.strikeCount {
+  font-size: 24px;
+  font-weight: 600;
+  margin-bottom: 15px;
+}
+
+.autoSubmitTimer {
+  margin-bottom: 30px;
+  color: #f87171;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+/* ── Buttons ── */
+.reenterBtn {
+  padding: 16px 40px;
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 10px 25px rgba(37, 99, 235, 0.4);
+}
+
+.terminatedActions {
+  margin-top: 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+}
+
+.dashboardBtn {
+  padding: 16px 40px;
+  background: linear-gradient(135deg, #ef4444, #991b1b);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 10px 25px rgba(239, 68, 68, 0.4);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.terminatedNote {
+  font-size: 14px;
+  color: #64748b;
+}
+
+.sessionId {
+  margin-top: 30px;
+  font-size: 12px;
+  color: #475569;
+}
