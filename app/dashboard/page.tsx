@@ -255,6 +255,7 @@ export default function DashboardPage() {
       if (active.length > 0) {
         for (const cfg of active) {
           const cfgTitle = (cfg.exam_title || "").trim().toLowerCase();
+          if (cfgTitle.includes("pyhunt_global_config")) continue;
           if (seen.has(cfgTitle)) continue;
           seen.add(cfgTitle);
 

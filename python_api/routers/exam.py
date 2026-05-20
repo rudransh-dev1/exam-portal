@@ -23,6 +23,31 @@ from db.supabase_client import get_supabase
 
 router = APIRouter(prefix="/exam", tags=["exam"])
 
+# ── Dynamic table existence check (cached at process level) ────────────────
+_quiz_sessions_exists: bool | None = None
+
+def _check_quiz_sessions_exists() -> bool:
+    """Test if quiz_sessions table is available in Supabase.
+    Result is cached for the lifetime of the process to avoid repeated probes."""
+    global _quiz_sessions_exists
+    if _quiz_sessions_exists is not None:
+        return _quiz_sessions_exists
+    db = get_supabase()
+    try:
+        db.table("quiz_sessions").select("id").limit(1).execute()
+        _quiz_sessions_exists = True
+        print("[EXAM] quiz_sessions table detected — using modern session path.")
+    except Exception as e:
+        err_str = str(e)
+        if "PGRST205" in err_str or "Could not find" in err_str or "relation" in err_str:
+            _quiz_sessions_exists = False
+            print(f"[EXAM] quiz_sessions table NOT found — using legacy fallback. ({e})")
+        else:
+            # Transient error (network etc.) — don't cache, try again next time
+            print(f"[EXAM] Transient error probing quiz_sessions: {e}")
+            return False
+    return _quiz_sessions_exists
+
 
 def _check_exam_active(title: str):
     """Raises 423 if the exam has been deactivated by admin.
@@ -388,13 +413,14 @@ def submit_exam(
     Finalize the exam:
     1. Reject if already submitted (idempotent safety)
     2. Calculate score against correct answers
-    3. Save final answers + score in quiz_sessions & quiz_responses
+    3. Save final answers + score (quiz_sessions if available, else exam_results)
     4. Mark status as SUBMITTED
     5. Clear active session
     """
     db = get_supabase()
     student_id = current["student_id"]
     user_id = current.get("user_id")
+    use_modern = _check_quiz_sessions_exists()
 
     # 1. Load correct answers ONLY for the question IDs the student was served
     answers = request.answers
@@ -409,26 +435,55 @@ def submit_exam(
     exam_id = exam_info["id"]
     category = exam_info.get("category", "Others")
 
-    # 1. Guard: already submitted this SPECIFIC exam?
-    session_res = db.table("quiz_sessions").select("id, status").eq("user_id", user_id).eq("exam_id", exam_id).limit(1).execute()
-    session_data = session_res.data[0] if session_res.data else {}
+    # 1b. Guard: already submitted this SPECIFIC exam?
+    session_data = {}
+    if use_modern:
+        try:
+            session_res = db.table("quiz_sessions").select("id, status").eq("user_id", user_id).eq("exam_id", exam_id).limit(1).execute()
+            session_data = session_res.data[0] if session_res.data else {}
+        except Exception as e:
+            print(f"[EXAM] quiz_sessions guard check failed, using legacy: {e}")
+            use_modern = False
 
-    if session_data.get("status") == "SUBMITTED":
-        # Return existing result
-        result_row = db.table("quiz_sessions").select("score, total_marks, completed_at, metadata").eq("id", session_data["id"]).single().execute()
-        r = result_row.data or {}
-        total = r.get("total_marks", 0)
-        score = r.get("score", 0)
-        meta = r.get("metadata", {})
-        return SubmitExamResponse(
-            submitted=True,
-            score=score,
-            total_marks=total,
-            correct_count=meta.get("correct_count", 0),
-            wrong_count=meta.get("wrong_count", 0),
-            percentage=round(score / total * 100, 1) if total else 0,
-            submitted_at=r.get("completed_at", datetime.now(timezone.utc).isoformat()),
-        )
+    if use_modern and session_data.get("status") == "SUBMITTED":
+        # Return existing result from modern table
+        try:
+            result_row = db.table("quiz_sessions").select("score, total_marks, completed_at, metadata").eq("id", session_data["id"]).single().execute()
+            r = result_row.data or {}
+            total = r.get("total_marks", 0)
+            sc = r.get("score", 0)
+            meta = r.get("metadata", {})
+            return SubmitExamResponse(
+                submitted=True,
+                score=sc,
+                total_marks=total,
+                correct_count=meta.get("correct_count", 0),
+                wrong_count=meta.get("wrong_count", 0),
+                percentage=round(sc / total * 100, 1) if total else 0,
+                submitted_at=r.get("completed_at", datetime.now(timezone.utc).isoformat()),
+            )
+        except Exception as e:
+            print(f"[EXAM] Modern submit guard fetch failed: {e}")
+
+    # Legacy guard: check exam_results for already-submitted
+    if not use_modern:
+        try:
+            legacy_check = db.table("exam_results").select("score, total_marks, correct_count, wrong_count, submitted_at").eq("student_id", student_id).eq("exam_title", exam_title).limit(1).execute()
+            if legacy_check.data and legacy_check.data[0].get("submitted_at"):
+                r = legacy_check.data[0]
+                total = r.get("total_marks", 0)
+                sc = r.get("score", 0)
+                return SubmitExamResponse(
+                    submitted=True,
+                    score=sc,
+                    total_marks=total,
+                    correct_count=r.get("correct_count", 0),
+                    wrong_count=r.get("wrong_count", 0),
+                    percentage=round(sc / total * 100, 1) if total else 0,
+                    submitted_at=r.get("submitted_at", datetime.now(timezone.utc).isoformat()),
+                )
+        except Exception as e:
+            print(f"[EXAM] Legacy submit guard check failed: {e}")
 
     # 2. Calculate score
     submitted_ids = [k for k in answers.keys() if not k.startswith("__")]
@@ -462,41 +517,56 @@ def submit_exam(
 
     completed_at = datetime.now(timezone.utc).isoformat()
 
-    # 4. Update quiz_sessions
-    db.table("quiz_sessions").update({
-        "status": "SUBMITTED",
-        "completed_at": completed_at,
-        "score": score,
-        "total_marks": total_marks,
-        "metadata": {
+    # 3. Update quiz_sessions (modern path)
+    if use_modern and session_data.get("id"):
+        try:
+            db.table("quiz_sessions").update({
+                "status": "SUBMITTED",
+                "completed_at": completed_at,
+                "score": score,
+                "total_marks": total_marks,
+                "metadata": {
+                    "correct_count": correct_count,
+                    "wrong_count": wrong_count,
+                    "total_questions": len(correct_map)
+                }
+            }).eq("id", session_data["id"]).execute()
+        except Exception as e:
+            print(f"[EXAM] quiz_sessions update failed: {e}")
+
+        # Insert quiz_responses (modern path)
+        if responses_payload:
+            try:
+                db.table("quiz_responses").upsert(responses_payload).execute()
+            except Exception as e:
+                print(f"[EXAM] quiz_responses upsert failed: {e}")
+
+    # 4. Legacy: Cleanup active session
+    try:
+        db.table("exam_status").delete().eq("student_id", student_id).execute()
+    except Exception as e:
+        print(f"[EXAM] exam_status cleanup failed: {e}")
+    try:
+        db.table("students").update({"is_active_session": False, "current_token": None}).eq("id", student_id).execute()
+    except Exception as e:
+        print(f"[EXAM] students update failed: {e}")
+
+    # 5. Always write to legacy exam_results (guaranteed to exist)
+    try:
+        db.table("exam_results").upsert({
+            "student_id": student_id, 
+            "exam_title": exam_title, 
+            "answers": answers, 
+            "score": score, 
+            "total_marks": total_marks,
             "correct_count": correct_count,
             "wrong_count": wrong_count,
-            "total_questions": len(correct_map)
-        }
-    }).eq("id", session_data.get("id")).execute()
-
-    # 5. Insert quiz_responses
-    if responses_payload:
-        db.table("quiz_responses").upsert(responses_payload).execute()
-
-    # 6. Legacy compatibility: Cleanup active session for THIS exam
-    db.table("exam_status").delete().eq("student_id", student_id).execute()
-    db.table("students").update({"is_active_session": False, "current_token": None}).eq("id", student_id).execute()
-
-    # Also update legacy exam_results for compatibility with existing history views if needed
-    # (Optional: migrate existing history views to use view_quiz_results)
-    db.table("exam_results").upsert({
-        "student_id": student_id, 
-        "exam_title": exam_title, 
-        "answers": answers, 
-        "score": score, 
-        "total_marks": total_marks,
-        "correct_count": correct_count,
-        "wrong_count": wrong_count,
-        "total_questions": len(correct_map),
-        "submitted_at": completed_at,
-        "category": category
-    }).execute()
+            "total_questions": len(correct_map),
+            "submitted_at": completed_at,
+            "category": category
+        }).execute()
+    except Exception as e:
+        print(f"[EXAM] exam_results upsert failed: {e}")
 
     return SubmitExamResponse(
         submitted=True,
@@ -516,13 +586,14 @@ async def start_exam(
 ):
     """
     Officially starts the exam timer for the student.
-    Sets status to 'active' and records 'started_at' in quiz_sessions.
-    Returns the start time so the frontend can sync.
+    Dynamically uses quiz_sessions if available, otherwise falls back
+    to exam_status (legacy) for session management.
     """
     _check_exam_active(title)
     db = get_supabase()
     student_id = current["student_id"]
-    user_id = current.get("user_id") # Assuming user_id is in current student dict
+    user_id = current.get("user_id")
+    use_modern = _check_quiz_sessions_exists()
 
     # Fetch exam config to get category and id
     exam_res = db.table("exam_config").select("id, category").eq("exam_title", title).limit(1).execute()
@@ -533,57 +604,90 @@ async def start_exam(
     exam_id = exam_info["id"]
     category = exam_info.get("category", "Others")
 
-    # 1. Check if already started or submitted in quiz_sessions
-    session_res = db.table("quiz_sessions").select("*").eq("user_id", user_id).eq("exam_id", exam_id).limit(1).execute()
-    session_data = session_res.data[0] if session_res.data else {}
-
-    if session_data.get("status") == "SUBMITTED":
-        raise HTTPException(status_code=403, detail="Exam already submitted.")
-    
-    if session_data.get("status") == "TERMINATED":
-        raise HTTPException(status_code=403, detail="Session terminated due to violations.")
-
-    # 2. If already active, return existing start time
-    if session_data.get("status") == "ACTIVE" and session_data.get("started_at"):
-        return StartExamResponse(
-            started_at=session_data["started_at"], 
-            status="active", 
-            started=True, 
-            exam_title=title,
-            session_id=session_data["id"],
-            category=category
-        )
-
-    # 3. Otherwise, set the start time NOW
     started_at = datetime.now(timezone.utc).isoformat()
-    
-    if session_data:
-        # Session exists (maybe aborted before) — reactivate it
-        db.table("quiz_sessions").update({
-            "status": "ACTIVE", 
-            "started_at": started_at,
-        }).eq("id", session_data["id"]).execute()
-        session_id = session_data["id"]
-    else:
-        # No session yet — insert one
-        new_session = db.table("quiz_sessions").insert({
-            "user_id": user_id,
-            "exam_id": exam_id,
-            "category": category,
-            "status": "ACTIVE", 
-            "started_at": started_at,
-        }).execute()
-        session_id = new_session.data[0]["id"] if new_session.data else None
+    session_id = None
 
-    # Legacy compatibility: still update exam_status for real-time monitoring
-    db.table("exam_status").upsert({
-        "student_id": student_id,
-        "status": "active", 
-        "started_at": started_at, 
-        "last_active": started_at,
-        "warnings": 0,
-        "exam_title": title
-    }).execute()
+    # ── Modern path: quiz_sessions ─────────────────────────────────────────
+    if use_modern:
+        try:
+            session_res = db.table("quiz_sessions").select("*").eq("user_id", user_id).eq("exam_id", exam_id).limit(1).execute()
+            session_data = session_res.data[0] if session_res.data else {}
+
+            if session_data.get("status") == "SUBMITTED":
+                raise HTTPException(status_code=403, detail="Exam already submitted.")
+            
+            if session_data.get("status") == "TERMINATED":
+                raise HTTPException(status_code=403, detail="Session terminated due to violations.")
+
+            if session_data.get("status") == "ACTIVE" and session_data.get("started_at"):
+                return StartExamResponse(
+                    started_at=session_data["started_at"], 
+                    status="active", started=True, 
+                    exam_title=title,
+                    session_id=session_data["id"],
+                    category=category
+                )
+
+            if session_data:
+                db.table("quiz_sessions").update({
+                    "status": "ACTIVE", "started_at": started_at,
+                }).eq("id", session_data["id"]).execute()
+                session_id = session_data["id"]
+            else:
+                new_session = db.table("quiz_sessions").insert({
+                    "user_id": user_id, "exam_id": exam_id,
+                    "category": category, "status": "ACTIVE", 
+                    "started_at": started_at,
+                }).execute()
+                session_id = new_session.data[0]["id"] if new_session.data else None
+        except HTTPException:
+            raise
+        except Exception as e:
+            print(f"[EXAM] Modern start_exam failed, falling back to legacy: {e}")
+            use_modern = False  # fall through to legacy below
+
+    # ── Legacy fallback: exam_status ───────────────────────────────────────
+    if not use_modern:
+        try:
+            # Check if already submitted via exam_results
+            submitted_check = db.table("exam_results").select("submitted_at").eq("student_id", student_id).eq("exam_title", title).limit(1).execute()
+            if submitted_check.data and submitted_check.data[0].get("submitted_at"):
+                raise HTTPException(status_code=403, detail="Exam already submitted.")
+        except HTTPException:
+            raise
+        except Exception:
+            pass  # Table might not have submitted_at column; proceed
+
+        try:
+            # Check if already active in exam_status
+            status_check = db.table("exam_status").select("*").eq("student_id", student_id).eq("exam_title", title).limit(1).execute()
+            if status_check.data:
+                existing = status_check.data[0]
+                if existing.get("status") == "active" and existing.get("started_at"):
+                    return StartExamResponse(
+                        started_at=existing["started_at"],
+                        status="active", started=True,
+                        exam_title=title,
+                        session_id="legacy-session",
+                        category=category
+                    )
+        except Exception as e:
+            print(f"[EXAM] Legacy status check error: {e}")
+
+        session_id = "legacy-session"
+
+    # Always upsert exam_status for real-time monitoring (works for both paths)
+    try:
+        db.table("exam_status").upsert({
+            "student_id": student_id,
+            "status": "active", 
+            "started_at": started_at, 
+            "last_active": started_at,
+            "warnings": 0,
+            "exam_title": title
+        }).execute()
+    except Exception as e:
+        print(f"[EXAM] exam_status upsert failed: {e}")
 
     return StartExamResponse(
         started_at=started_at, 

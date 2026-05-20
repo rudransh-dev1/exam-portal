@@ -98,7 +98,9 @@ export default function InstructionsPage() {
       });
       if (res.ok) {
         const data = await res.json();
-        const count = Array.isArray(data) ? data.length : 0;
+        const count = Array.isArray(data) 
+          ? data.length 
+          : (data.questions ? data.questions.length : (data.total || 0));
         setStudentInfo(prev => prev ? { ...prev, totalQuestions: count } : null);
       }
     } catch (e) {
