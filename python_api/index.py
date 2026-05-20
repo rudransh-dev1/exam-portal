@@ -37,6 +37,10 @@ async def health_check():
 async def root():
     return {"message": "ExamGuard API Active", "version": "1.0.4"}
 
+@app.get("/dump/{full_path:path}")
+async def dump_path(request: Request, full_path: str):
+    return {"path": request.scope["path"], "raw_path": request.scope.get("raw_path", b"").decode("utf-8"), "full_path": full_path}
+
 # Load routers
 _init_error = None
 _init_traceback = None
