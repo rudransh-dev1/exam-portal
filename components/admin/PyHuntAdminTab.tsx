@@ -26,6 +26,7 @@ interface CodingProblem {
   testCases: {input:string;expected:string}[]; 
   imageUrl?: string;
   targetOutput?: string;
+  language?: string;
 }
 interface ClueConfig { clueText: string; unlockCode: string; }
 interface TurtleProblem { title: string; description: string; starterCode: string; }
@@ -75,7 +76,8 @@ const CodingProblemSchema = z.object({
   starterCode: z.string(),
   testCases: z.array(z.object({ input: z.string(), expected: z.string() })),
   imageUrl: z.string().optional(),
-  targetOutput: z.string().optional()
+  targetOutput: z.string().optional(),
+  language: z.string().optional()
 });
 
 const ClueConfigSchema = z.object({
@@ -1207,6 +1209,25 @@ function CodingProblemEditor({ cfg, setCfg, rk, rn, accentColor = "#00dcff", lab
         <span style={{fontSize:13, color:"#3a5578", fontWeight:700, letterSpacing:1}}>IDE EDITOR</span>
       </div>
 
+      {/* LANGUAGE SELECTOR */}
+      <label htmlFor={`${rk}_lang`} style={{...$.lbl, textTransform:"uppercase", letterSpacing:1}}>🌐 Programming Language</label>
+      <select
+        id={`${rk}_lang`}
+        value={cfg[rk].language || "python"}
+        onChange={e => setCfg(c => ({...c, [rk]: {...c[rk], language: e.target.value}}))}
+        style={{
+          ...$.inp, width: "auto", minWidth: 200, marginBottom: 20,
+          cursor: "pointer", fontWeight: 700,
+          background: "rgba(0,0,0,0.35)",
+          borderColor: `${accentColor}44`
+        }}
+      >
+        <option value="python" style={{background:"#0d1117"}}>🐍 Python</option>
+        <option value="c" style={{background:"#0d1117"}}>⚙️ C</option>
+        <option value="cpp" style={{background:"#0d1117"}}>⚙️ C++</option>
+        <option value="java" style={{background:"#0d1117"}}>☕ Java</option>
+      </select>
+
       {/* QUESTION / PROMPT */}
       <label htmlFor={`${rk}_desc`} style={{...$.lbl, textTransform:"uppercase", letterSpacing:1}}>Question / Prompt</label>
       <textarea id={`${rk}_desc`} style={{...$.ta, minHeight:300, marginBottom:20}} 
@@ -1258,8 +1279,8 @@ function CodingProblemEditor({ cfg, setCfg, rk, rn, accentColor = "#00dcff", lab
 
       {/* STARTER CODE */}
       <label htmlFor={`${rk}_starter`} style={{...$.lbl, display:"flex", alignItems:"center", justifyContent:"space-between", textTransform:"uppercase", letterSpacing:1}}>
-        <span>🐍 Starter Code</span>
-        <span style={{fontSize:12, color:"#3a5578"}}>Python 3 · Tab = 4 spaces</span>
+        <span>{cfg[rk].language === "java" ? "☕" : cfg[rk].language === "c" || cfg[rk].language === "cpp" ? "⚙️" : "🐍"} Starter Code</span>
+        <span style={{fontSize:12, color:"#3a5578"}}>{(cfg[rk].language || "python").toUpperCase()} · Tab = 4 spaces</span>
       </label>
       <textarea
         id={`${rk}_starter`}

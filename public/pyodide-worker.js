@@ -38,13 +38,13 @@ _stderr_buf = io.StringIO()
 sys.stdout = _stdout_buf
 sys.stderr = _stderr_buf
 _input_lines = ${safeInput}
-_input_idx   = [0]
+_input_str = "\\n".join(str(x) for x in _input_lines) + ("\\n" if _input_lines else "")
+sys.stdin = io.StringIO(_input_str)
 def input(prompt=''):
-    idx = _input_idx[0]
-    if idx < len(_input_lines):
-        _input_idx[0] += 1
-        return str(_input_lines[idx])
-    return ''
+    line = sys.stdin.readline()
+    if not line:
+        return ''
+    return line.rstrip('\\r\\n')
 builtins.input = input
 `;
   const teardown = `

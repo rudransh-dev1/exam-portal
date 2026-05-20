@@ -26,6 +26,7 @@ interface CodingProblem {
   testCases: { input: string; expected: string; }[];
   imageUrl?: string;
   targetOutput?: string;
+  language?: string;
 }
 interface TurtleProblem { title: string; description: string; starterCode: string; }
 interface JumbleProblem { title: string; description: string; lines: string[]; }
@@ -463,6 +464,8 @@ export function RoundCoding({
   const [code, setCode] = useState(initialCode || problem.starterCode);
   const [running, setRunning] = useState(false);
   const [cooldown, setCooldown] = useState(0);
+  const [aiCooldown, setAiCooldown] = useState(0);
+  const [askingAi, setAskingAi] = useState(false);
   const [activeBottomTab, setActiveBottomTab] = useState<"console"|"testcases">("testcases");
   const [output, setOutput] = useState<{stdout:string;stderr:string;error?:string}|null>(null);
   const [testResults, setTestResults] = useState<{pass:boolean;got:string;expected:string;input:string}[]>([]);
@@ -482,6 +485,13 @@ export function RoundCoding({
     }
   }, [cooldown]);
 
+  useEffect(() => {
+    if (aiCooldown > 0) {
+      const t = setTimeout(() => setAiCooldown(c => c - 1), 1000);
+      return () => clearTimeout(t);
+    }
+  }, [aiCooldown]);
+
   // Tab key inserts 4 spaces
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Tab") {
@@ -497,6 +507,46 @@ export function RoundCoding({
     }
   };
 
+  const handleAskAi = async () => {
+    if (askingAi || aiCooldown > 0) return;
+    setAskingAi(true);
+    setAiCooldown(30); // 30s cooldown to protect limits
+    setFeedback("🤖 AI is analyzing your code logic...");
+    setHint(null);
+    setActiveBottomTab("console");
+
+    try {
+      const response = await fetch("/api/ai/check-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          problem_title: problem.title,
+          problem_description: problem.description,
+          code,
+          test_cases: problem.testCases,
+          round_num: roundNum,
+        })
+      });
+
+      if (response.ok) {
+        const aiData = await response.json();
+        setFeedback(aiData.feedback || "❌ Code logic has issues. Check your loops or variables.");
+        if (aiData.errors && aiData.errors !== "None") {
+          setHint(`💡 ${aiData.errors}`);
+        } else {
+          setHint("💡 Look closely at the expected outputs vs your current results.");
+        }
+      } else {
+        const errData = await response.json().catch(() => ({}));
+        setFeedback(errData.error === "Rate limit reached" ? "🤖 AI Rate limit reached. Please try again in a few seconds." : "🤖 AI Hint is temporarily unavailable.");
+      }
+    } catch (err: any) {
+      setFeedback("🤖 AI Hint is temporarily unavailable.");
+    } finally {
+      setAskingAi(false);
+    }
+  };
+
   const runVerification = async (isSubmit: boolean) => {
     if (running || cooldown > 0) return;
     setRunning(true); setSubmitMode(isSubmit);
@@ -505,23 +555,86 @@ export function RoundCoding({
 
     try {
       setVerifying(true);
-      setFeedback("⚙️ Running tests locally...");
       
+      const lang = (problem.language || "python").toLowerCase().trim();
+      const isPython = lang === "python" || lang === "py";
+
       let localPassed = false;
       let localResults: any[] = [];
       let localOut = { stdout: "", stderr: "", error: "" };
       
-      if (ready) {
-        const { results, allPass: ap } = await runTests(code, problem.testCases);
-        const defaultStdin = problem.testCases.length > 0 ? problem.testCases[0].input : "";
-        localOut = await runCode(code, defaultStdin) as any;
-        localResults = results.map((r, i) => ({ ...r, input: problem.testCases[i]?.input || "" }));
-        setTestResults(localResults);
-        setOutput(localOut);
+      if (isPython) {
+        setFeedback("⚙️ Running tests locally...");
+        if (ready) {
+          const { results, allPass: ap } = await runTests(code, problem.testCases);
+          const defaultStdin = problem.testCases.length > 0 ? problem.testCases[0].input : "";
+          localOut = await runCode(code, defaultStdin) as any;
+          localResults = results.map((r, i) => ({ ...r, input: problem.testCases[i]?.input || "" }));
+          setTestResults(localResults);
+          setOutput(localOut);
+          
+          if (ap) {
+            localPassed = true;
+            setEngine("⚙️ Local Python");
+            setFeedback("✅ Correct! All test cases passed successfully.");
+            setActiveBottomTab("testcases");
+            if (isSubmit) {
+              setAllPass(true);
+            }
+            setRunning(false);
+            setVerifying(false);
+            return;
+          } else {
+            setFeedback("❌ Some tests failed. Check your logic.");
+          }
+        } else {
+          setFeedback("⚠ Python engine still loading. Try again shortly.");
+          setRunning(false);
+          setVerifying(false);
+          return;
+        }
+      } else {
+        // Run C, C++, Java on backend execution layer
+        setFeedback("⚙️ Compiling and running tests in cloud...");
+        const response = await fetch("/py-api/exam/pyhunt/verify", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${sessionStorage.getItem("exam_token") || ""}`,
+          },
+          body: JSON.stringify({
+            code,
+            test_cases: problem.testCases.map(tc => ({ input: tc.input, expected: tc.expected })),
+            language: lang,
+            ask_ai: false
+          })
+        });
+
+        if (!response.ok) {
+          const errText = await response.text();
+          throw new Error(errText || "Cloud compilation failed.");
+        }
+
+        const data = await response.json();
+        const results = data.results || [];
+        localResults = results.map((r: any, i: number) => ({
+          pass: r.pass,
+          got: r.got,
+          expected: r.expected,
+          input: problem.testCases[i]?.input || ""
+        }));
         
-        if (ap) {
-          localPassed = true;
-          setEngine("⚙️ Local Python");
+        setTestResults(localResults);
+        setEngine(data.engine || `Piston (${lang.toUpperCase()})`);
+        
+        const firstResult = results[0] || {};
+        setOutput({
+          stdout: firstResult.got || "",
+          stderr: firstResult.pass ? "" : (firstResult.got || ""),
+          error: firstResult.pass ? "" : (firstResult.got || "")
+        });
+
+        if (data.all_pass) {
           setFeedback("✅ Correct! All test cases passed successfully.");
           setActiveBottomTab("testcases");
           if (isSubmit) {
@@ -530,42 +643,9 @@ export function RoundCoding({
           setRunning(false);
           setVerifying(false);
           return;
-        }
-      } else {
-        setFeedback("⚠ Python engine still loading. Try again shortly.");
-        setRunning(false);
-        setVerifying(false);
-        return;
-      }
-
-      // ── Fallback: Groq AI Grader (for hints and logic feedback on failure) ──
-      setFeedback("🤖 AI is analyzing your code for hints...");
-      
-      try {
-        const aiResp = await fetch("/api/ai/check-code", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            problem_title: problem.title,
-            problem_description: problem.description,
-            code,
-            test_cases: problem.testCases,
-            round_num: roundNum,
-          })
-        });
-
-        if (aiResp.ok) {
-          const aiData = await aiResp.json();
-          setEngine("⚙️ Local + 🤖 AI Hint");
-          setFeedback(aiData.feedback || "❌ Some tests failed. Check your logic.");
-          if (aiData.errors && aiData.errors !== "None") setHint(`💡 ${aiData.errors}`);
         } else {
-          setEngine("⚙️ Local Python");
-          setFeedback("❌ Some tests failed. (AI hint unavailable)");
+          setFeedback("❌ Some tests failed. Check your logic.");
         }
-      } catch (aiErr) {
-        setEngine("⚙️ Local Python");
-        setFeedback("❌ Some tests failed. (AI hint unavailable)");
       }
 
       setActiveBottomTab(isSubmit ? "testcases" : "console");
@@ -631,8 +711,27 @@ export function RoundCoding({
           <div className={styles.ideSection}>
             <div className={styles.ideSectionLabel}>PROTOCOL NOTE</div>
             <div className={styles.ideProtocolBox}>
-              <p>Use <code>input()</code> to read the test value. Print only the final result.</p>
-              <pre className={styles.ideProtocolCode}>{`val = input()\nprint(your_result)`}</pre>
+              {problem.language?.toLowerCase() === "c" ? (
+                <>
+                  <p>Read standard input (e.g. using <code>scanf</code>). Print only the final result.</p>
+                  <pre className={styles.ideProtocolCode}>{`char buffer[256];\nscanf("%s", buffer);\nprintf("%s\\n", result);`}</pre>
+                </>
+              ) : problem.language?.toLowerCase() === "cpp" || problem.language?.toLowerCase() === "c++" ? (
+                <>
+                  <p>Read standard input (e.g. using <code>cin</code>). Print only the final result.</p>
+                  <pre className={styles.ideProtocolCode}>{`string s;\ncin >> s;\ncout << result << endl;`}</pre>
+                </>
+              ) : problem.language?.toLowerCase() === "java" ? (
+                <>
+                  <p>Your class must be named <code>Main</code>. Use a <code>Scanner</code> to read from <code>System.in</code>.</p>
+                  <pre className={styles.ideProtocolCode}>{`import java.util.Scanner;\n\npublic class Main {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        String s = sc.nextLine();\n        System.out.println(result);\n    }\n}`}</pre>
+                </>
+              ) : (
+                <>
+                  <p>Use <code>input()</code> to read the test value. Print only the final result.</p>
+                  <pre className={styles.ideProtocolCode}>{`val = input()\nprint(your_result)`}</pre>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -641,7 +740,12 @@ export function RoundCoding({
         <div className={styles.ideRight}>
           {/* Language badge */}
           <div className={styles.ideLangBar}>
-            <span className={styles.ideLangBadge}>🐍 Python 3</span>
+            <span className={styles.ideLangBadge}>
+              {problem.language?.toLowerCase() === "c" ? "⚙️ C"
+                : problem.language?.toLowerCase() === "cpp" || problem.language?.toLowerCase() === "c++" ? "⚙️ C++"
+                : problem.language?.toLowerCase() === "java" ? "☕ Java"
+                : "🐍 Python 3"}
+            </span>
           </div>
 
           {/* Code editor */}
@@ -652,7 +756,12 @@ export function RoundCoding({
             onChange={e => setCode(e.target.value)}
             onKeyDown={handleKeyDown}
             spellCheck={false}
-            placeholder="# Write your Python solution here..."
+            placeholder={
+              problem.language?.toLowerCase() === "c" ? "// Write your C solution here..."
+                : problem.language?.toLowerCase() === "cpp" || problem.language?.toLowerCase() === "c++" ? "// Write your C++ solution here..."
+                : problem.language?.toLowerCase() === "java" ? "// Write your Java solution here...\n// Note: Your main class must be named 'Main'"
+                : "# Write your Python solution here..."
+            }
           />
 
           {/* Bottom tabs */}
@@ -745,6 +854,13 @@ export function RoundCoding({
             <div className={styles.ideStatusDot}>
               {ready ? <span className={styles.ideReady}>● READY</span> : <span className={styles.ideLoading}>● LOADING</span>}
             </div>
+            <button
+              className={styles.ideAiBtn}
+              onClick={handleAskAi}
+              disabled={askingAi || aiCooldown > 0}
+            >
+              {askingAi ? "🤖 Analyzing…" : aiCooldown > 0 ? `🤖 Ask AI (${aiCooldown}s)` : "🤖 Ask AI"}
+            </button>
             <button
               className={styles.ideRunBtn}
               onClick={() => runVerification(false)}

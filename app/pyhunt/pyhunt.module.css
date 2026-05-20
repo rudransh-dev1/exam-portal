@@ -991,3 +991,20 @@
   tab-size: 4; outline: none;
 }
 .adminIdeEditor:focus { border-color: rgba(0,220,255,0.4); }
+
+.ideAiBtn {
+  padding: 8px 22px; border-radius: 8px;
+  background: rgba(139, 92, 246, 0.08); border: 1.5px solid rgba(139, 92, 246, 0.35);
+  color: #a78bfa; font-size: 13px; font-weight: 700;
+  cursor: pointer; font-family: inherit; transition: all 0.2s;
+  box-shadow: 0 0 16px rgba(139, 92, 246, 0.15);
+}
+.ideAiBtn:hover:not(:disabled) {
+  background: rgba(139, 92, 246, 0.18);
+  border-color: rgba(139, 92, 246, 0.65);
+  box-shadow: 0 0 24px rgba(139, 92, 246, 0.3);
+  transform: translateY(-1px);
+}
+.ideAiBtn:disabled {
+  opacity: 0.45; cursor: not-allowed;
+}
