@@ -44,7 +44,6 @@ def ensure_faculty_table():
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                 email TEXT UNIQUE NOT NULL,
                 name TEXT NOT NULL,
-                department TEXT,
                 password_hash TEXT NOT NULL,
                 created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
             );
@@ -52,12 +51,6 @@ def ensure_faculty_table():
             execute_sql(create_sql)
         except Exception as e:
             print(f"[FACULTY] Migration failed: {e}")
-            
-    # Try adding department column if it's missing from older installations
-    try:
-        execute_sql("ALTER TABLE faculty ADD COLUMN department TEXT;")
-    except Exception:
-        pass
 
 # ── Models ──────────────────────────────────────────────────────
 
@@ -76,6 +69,27 @@ class FacultyLogin(BaseModel):
     email: str
     password: str
 
+# Helper to pack department into name
+def pack_faculty_name(name: str, dept: str) -> str:
+    n = name.strip()
+    d = dept.strip()
+    if d:
+        return f"{n} || {d}"
+    return n
+
+# Helper to unpack department from name
+def unpack_faculty_record(fac: dict) -> dict:
+    if not fac:
+        return fac
+    name_val = fac.get("name", "")
+    if " || " in name_val:
+        parts = name_val.split(" || ", 1)
+        fac["name"] = parts[0]
+        fac["department"] = parts[1]
+    else:
+        fac["department"] = ""
+    return fac
+
 # ── Admin Endpoints ─────────────────────────────────────────────
 
 @router.post("/admin/faculty")
@@ -85,16 +99,17 @@ async def create_faculty(req: FacultyCreate, request: Request):
     db = get_supabase()
     try:
         hashed_password = pwd_context.hash(req.password)
+        packed_name = pack_faculty_name(req.name, req.department)
+        
         result = db.table("faculty").insert({
             "email": req.email.strip().lower(),
-            "name": req.name.strip(),
-            "department": req.department.strip(),
+            "name": packed_name,
             "password_hash": hashed_password
         }).execute()
         
         fac = result.data[0]
         del fac["password_hash"]
-        return {"ok": True, "faculty": fac}
+        return {"ok": True, "faculty": unpack_faculty_record(fac)}
     except Exception as e:
         if "duplicate key" in str(e).lower() or "unique constraint" in str(e).lower():
             raise HTTPException(400, "Faculty with this email already exists")
@@ -106,8 +121,11 @@ async def list_faculty(request: Request):
     ensure_faculty_table()
     db = get_supabase()
     try:
-        result = db.table("faculty").select("id, email, name, department, created_at").order("created_at", desc=True).execute()
-        return result.data or []
+        result = db.table("faculty").select("id, email, name, created_at").order("created_at", desc=True).execute()
+        faculties = result.data or []
+        for fac in faculties:
+            unpack_faculty_record(fac)
+        return faculties
     except Exception as e:
         raise HTTPException(500, str(e))
 
@@ -128,21 +146,36 @@ async def update_faculty(faculty_id: str, req: FacultyUpdate, request: Request):
     ensure_faculty_table()
     db = get_supabase()
     updates = {}
-    if req.name is not None:
-        updates["name"] = req.name.strip()
-    if req.department is not None:
-        updates["department"] = req.department.strip()
+    
+    # We must fetch the existing record first to keep packed name consistent
+    try:
+        existing = db.table("faculty").select("name").eq("id", faculty_id).maybe_single().execute()
+        if not existing.data:
+            raise HTTPException(404, "Faculty member not found")
+        
+        exist_fac = unpack_faculty_record(existing.data)
+        exist_name = exist_fac.get("name", "")
+        exist_dept = exist_fac.get("department", "")
+        
+        new_name = req.name if req.name is not None else exist_name
+        new_dept = req.department if req.department is not None else exist_dept
+        
+        updates["name"] = pack_faculty_name(new_name, new_dept)
+    except Exception as e:
+        if isinstance(e, HTTPException):
+            raise
+        raise HTTPException(500, f"Error fetching existing record: {str(e)}")
+        
     if req.password is not None and req.password.strip() != "":
         updates["password_hash"] = pwd_context.hash(req.password)
-        
-    if not updates:
-        raise HTTPException(400, "No fields to update")
         
     try:
         result = db.table("faculty").update(updates).eq("id", faculty_id).execute()
         fac = result.data[0] if result.data else None
-        if fac and "password_hash" in fac:
-            del fac["password_hash"]
+        if fac:
+            if "password_hash" in fac:
+                del fac["password_hash"]
+            unpack_faculty_record(fac)
         return {"ok": True, "faculty": fac}
     except Exception as e:
         raise HTTPException(500, str(e))
@@ -156,7 +189,7 @@ async def faculty_login(req: FacultyLogin):
     try:
         # Check email
         email = req.email.strip().lower()
-        result = db.table("faculty").select("*").eq("email", email).maybe_single().execute()
+        result = db.table("faculty").select("id, email, name, password_hash").eq("email", email).maybe_single().execute()
         if not result.data:
             raise HTTPException(status_code=401, detail="Invalid email or password")
             
@@ -164,6 +197,8 @@ async def faculty_login(req: FacultyLogin):
         if not pwd_context.verify(req.password, faculty_user["password_hash"]):
             raise HTTPException(status_code=401, detail="Invalid email or password")
             
+        unpack_faculty_record(faculty_user)
+        
         # Create token
         access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
         token_data = {
@@ -195,16 +230,17 @@ async def faculty_signup(req: FacultyCreate):
     db = get_supabase()
     try:
         hashed_password = pwd_context.hash(req.password)
+        packed_name = pack_faculty_name(req.name, req.department)
+        
         result = db.table("faculty").insert({
             "email": req.email.strip().lower(),
-            "name": req.name.strip(),
-            "department": req.department.strip(),
+            "name": packed_name,
             "password_hash": hashed_password
         }).execute()
         
         fac = result.data[0]
         del fac["password_hash"]
-        return {"ok": True, "faculty": fac}
+        return {"ok": True, "faculty": unpack_faculty_record(fac)}
     except Exception as e:
         if "duplicate key" in str(e).lower() or "unique constraint" in str(e).lower():
             raise HTTPException(400, "Faculty with this email already exists")

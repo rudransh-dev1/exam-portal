@@ -293,13 +293,13 @@ export default function CodeEditor({
                   Test {i + 1}{r.description ? `: ${r.description}` : ""}
                 </span>
               </div>
-              {!r.input.includes("[hidden]") && (
+              {r.input && !r.input.includes("[hidden]") && (
                 <div className={styles.resultDetail}>
                   <span className={styles.detailLabel}>Input:</span>
                   <code>{r.input || "(none)"}</code>
                 </div>
               )}
-              {!r.expected.includes("[hidden]") && (
+              {r.expected && !r.expected.includes("[hidden]") && (
                 <div className={styles.resultDetail}>
                   <span className={styles.detailLabel}>Expected:</span>
                   <code>{r.expected}</code>
