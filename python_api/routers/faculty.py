@@ -52,6 +52,12 @@ def ensure_faculty_table():
             execute_sql(create_sql)
         except Exception as e:
             print(f"[FACULTY] Migration failed: {e}")
+            
+    # Try adding department column if it's missing from older installations
+    try:
+        execute_sql("ALTER TABLE faculty ADD COLUMN department TEXT;")
+    except Exception:
+        pass
 
 # ── Models ──────────────────────────────────────────────────────
 
@@ -181,4 +187,25 @@ async def faculty_login(req: FacultyLogin):
     except HTTPException:
         raise
     except Exception as e:
+        raise HTTPException(500, str(e))
+
+@router.post("/faculty/signup")
+async def faculty_signup(req: FacultyCreate):
+    ensure_faculty_table()
+    db = get_supabase()
+    try:
+        hashed_password = pwd_context.hash(req.password)
+        result = db.table("faculty").insert({
+            "email": req.email.strip().lower(),
+            "name": req.name.strip(),
+            "department": req.department.strip(),
+            "password_hash": hashed_password
+        }).execute()
+        
+        fac = result.data[0]
+        del fac["password_hash"]
+        return {"ok": True, "faculty": fac}
+    except Exception as e:
+        if "duplicate key" in str(e).lower() or "unique constraint" in str(e).lower():
+            raise HTTPException(400, "Faculty with this email already exists")
         raise HTTPException(500, str(e))

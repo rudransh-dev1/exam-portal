@@ -54,7 +54,7 @@ export default function AdminDashboard({ examId = "" }: Props) {
   // Fetch current throttle mode (always works, no auth needed)
   const fetchThrottle = useCallback(async () => {
     try {
-      const r = await fetch("/api/admin/throttle_status");
+      const r = await fetch("/py-api/admin/throttle_status");
       if (r.ok) { const d = await r.json(); setMode(d.throttle_mode || "normal"); }
     } catch { /* ignore */ }
   }, []);
@@ -63,7 +63,7 @@ export default function AdminDashboard({ examId = "" }: Props) {
   const fetchAgg = useCallback(async () => {
     if (!examId) return;
     try {
-      const r = await fetch(`/api/admin/aggregate?exam_id=${examId}`, { headers: mkHeaders() });
+      const r = await fetch(`/py-api/admin/aggregate?exam_id=${examId}`, { headers: mkHeaders() });
       if (!r.ok) { setAggErr(`${r.status}`); return; }
       const d = await r.json();
       setAgg(d); setMode(d.throttle_mode || "normal"); setAggErr(null);
@@ -80,7 +80,7 @@ export default function AdminDashboard({ examId = "" }: Props) {
     if (throttleLoading) return;
     setTL(true); setMsg(null);
     try {
-      const r = await fetch("/api/admin/throttle", {
+      const r = await fetch("/py-api/admin/throttle", {
         method: "POST", headers: mkHeaders(), body: JSON.stringify({ mode })
       });
       if (r.ok) {
@@ -97,13 +97,13 @@ export default function AdminDashboard({ examId = "" }: Props) {
   const drillDown = async (sid: string) => {
     setDrill(sid); setLog(null); setLL(true);
     try {
-      const r = await fetch(`/api/admin/student_log?session_id=${sid}`, { headers: mkHeaders() });
+      const r = await fetch(`/py-api/admin/student_log?session_id=${sid}`, { headers: mkHeaders() });
       setLog(await r.json());
     } finally { setLL(false); }
   };
 
   const exportSession = async (sid: string) => {
-    const r   = await fetch(`/api/export_session?session_id=${sid}`, { headers: mkHeaders() });
+    const r   = await fetch(`/py-api/export_session?session_id=${sid}`, { headers: mkHeaders() });
     const url = URL.createObjectURL(await r.blob());
     Object.assign(document.createElement("a"), { href: url, download: `session_${sid.slice(0,8)}.json` }).click();
     URL.revokeObjectURL(url);

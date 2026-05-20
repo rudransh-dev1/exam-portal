@@ -9,9 +9,7 @@ import EventMcqRound from "@/components/events/EventMcqRound";
 import EventProgrammingRound from "@/components/events/EventProgrammingRound";
 import EventJumbleRound from "@/components/events/EventJumbleRound";
 
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL ||
-  (typeof window !== "undefined" ? window.location.origin : "");
+const API_BASE = "";
 
 type EventPhase = "loading" | "start" | "playing" | "complete";
 
