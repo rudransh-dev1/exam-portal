@@ -2304,7 +2304,7 @@ function LiveEventsFeed({ students }: { students: StudentRow[] }) {
           .limit(10);
         
         if (data) {
-          const enhanced = data.map(log => {
+          const enhanced = data.map((log: any) => {
             const st = students.find(s => s.usn === log.usn);
             return {
               id: log.id.toString(),
