@@ -2299,7 +2299,7 @@ function StudentsTab() {
 }
 
 // ── Live Events Feed ──
-function LiveEventsFeed({ students }: { students: StudentRow[] }) {
+function LiveEventsFeed({ students }: { students: (StudentRow | AdminStudent)[] }) {
   const [events, setEvents] = useState<{ id: string, name: string, usn: string, event: string, time: string, type: string }[]>([]);
 
   useEffect(() => {
