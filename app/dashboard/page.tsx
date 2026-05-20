@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import nextDynamic from "next/dynamic";
 import { supabase } from "@/lib/supabase";
-import { fetchPublicExamConfig, apiFetch, fetchProfile } from "@/lib/api";
+import { fetchPublicExamConfig, apiFetch, fetchProfile, fetchActiveEvents, fetchEventHistory } from "@/lib/api";
 
 // Styles
 import "./theme.css";
@@ -136,6 +136,14 @@ export default function DashboardPage() {
   const [theme, setTheme] = useState<'galaxy' | 'classic'>('galaxy');
   const [localHistory, setLocalHistory] = useState<any[]>([]);
   const [historyMode, setHistoryMode] = useState<'All' | 'Aptitude' | 'Programming' | 'Events' | 'Others'>('All');
+  const [activeEvents, setActiveEvents] = useState<any[]>([]);
+  const [selectedEvent, setSelectedEvent] = useState<any | null>(null);
+
+  useEffect(() => {
+    if (activeEvents.length > 0 && !selectedEvent) {
+      setSelectedEvent(activeEvents[0]);
+    }
+  }, [activeEvents, selectedEvent]);
 
   useEffect(() => {
     const raw = sessionStorage.getItem("exam_student");
@@ -270,6 +278,12 @@ export default function DashboardPage() {
         }
       }
       setAllExams(nodes);
+      try {
+        const evs = await fetchActiveEvents();
+        setActiveEvents(evs || []);
+      } catch (evErr) {
+        console.error("[DASHBOARD] Failed loading active events:", evErr);
+      }
     } catch (err) {
       console.error("[DASHBOARD] loadExams failed:", err);
     } finally {
@@ -595,6 +609,105 @@ export default function DashboardPage() {
                         </div>
                       </div>
                     </div>
+                    {/* ── ACTIVE EVENTS ── */}
+                    {activeEvents.length > 0 && (
+                      <section className={styles.examSection} style={{ marginBottom: "40px" }}>
+                        <div className={styles.sectionHeader}>
+                          <div>
+                            <h2 className={styles.sectionTitle} style={{ display: "flex", alignItems: "center", gap: "8px", background: "linear-gradient(90deg, #ec4899 0%, #a855f7 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+                              <span style={{ fontSize: "22px" }}>🏆</span> Special Event Quests
+                            </h2>
+                            <p className={styles.sectionSub}>High-priority multiplayer & round challenges</p>
+                          </div>
+                          <div className={styles.liveStatusBadge} style={{ background: "linear-gradient(135deg, #a855f7 0%, #ec4899 100%)", border: "none", boxShadow: "0 0 15px rgba(236,72,153,0.4)" }}>EVENT ACTIVE</div>
+                        </div>
+
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "20px", marginTop: "16px" }}>
+                          {activeEvents.map((evt) => (
+                            <div key={evt.id} style={{
+                              background: "rgba(255, 255, 255, 0.03)",
+                              backdropFilter: "blur(12px)",
+                              border: "1px solid rgba(168, 85, 247, 0.2)",
+                              borderRadius: "16px",
+                              padding: "24px",
+                              position: "relative",
+                              overflow: "hidden",
+                              display: "flex",
+                              flexDirection: "column",
+                              justifyContent: "space-between",
+                              gap: "16px",
+                              transition: "all 0.3s ease",
+                              boxShadow: "0 8px 32px 0 rgba(0, 0, 0, 0.37)"
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.border = "1px solid rgba(236, 72, 153, 0.5)";
+                              e.currentTarget.style.boxShadow = "0 8px 32px 0 rgba(236, 72, 153, 0.15)";
+                              e.currentTarget.style.transform = "translateY(-4px)";
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.border = "1px solid rgba(168, 85, 247, 0.2)";
+                              e.currentTarget.style.boxShadow = "0 8px 32px 0 rgba(0, 0, 0, 0.37)";
+                              e.currentTarget.style.transform = "translateY(0px)";
+                            }}>
+                              <div style={{ position: "absolute", top: 0, right: 0, width: "100px", height: "100px", background: "radial-gradient(circle, rgba(168,85,247,0.1) 0%, transparent 70%)", pointerEvents: "none" }} />
+                              
+                              <div>
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                                  <h3 style={{ fontSize: "1.2rem", fontWeight: 800, color: "#fff", textShadow: "0 0 10px rgba(255,255,255,0.1)" }}>{evt.name}</h3>
+                                  <span style={{ fontSize: "11px", fontWeight: 700, padding: "4px 8px", borderRadius: "100px", background: "rgba(168, 85, 247, 0.15)", border: "1px solid rgba(168, 85, 247, 0.3)", color: "#c084fc", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                                    By {evt.created_by_name || "Faculty"}
+                                  </span>
+                                </div>
+                                
+                                <p style={{ fontSize: "0.9rem", color: "#a1a1aa", marginTop: "8px", lineHeight: "1.4" }}>
+                                  {evt.description || "Compete with other nodes in a fast-paced coding, aptitude, and jumbled challenge!"}
+                                </p>
+                              </div>
+
+                              <div>
+                                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "16px" }}>
+                                  {evt.rounds && evt.rounds.map((rnd: any) => (
+                                    <span key={rnd.id} style={{ fontSize: "11px", fontWeight: 600, padding: "3px 8px", borderRadius: "6px", background: "rgba(255, 255, 255, 0.05)", border: "1px solid rgba(255, 255, 255, 0.1)", color: "#e4e4e7" }}>
+                                      Round {rnd.round_number}: {rnd.round_type.toUpperCase()}
+                                    </span>
+                                  ))}
+                                  {(!evt.rounds || evt.rounds.length === 0) && (
+                                    <span style={{ fontSize: "11px", opacity: 0.5 }}>No rounds added yet</span>
+                                  )}
+                                </div>
+
+                                <button onClick={() => push(`/events/play/${evt.id}`)} style={{
+                                  width: "100%",
+                                  padding: "12px",
+                                  borderRadius: "10px",
+                                  background: "linear-gradient(135deg, #a855f7 0%, #ec4899 100%)",
+                                  border: "none",
+                                  color: "#fff",
+                                  fontWeight: 700,
+                                  fontSize: "14px",
+                                  cursor: "pointer",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  gap: "8px",
+                                  boxShadow: "0 4px 15px rgba(168, 85, 247, 0.3)",
+                                  transition: "all 0.2s ease"
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.boxShadow = "0 4px 20px rgba(236, 72, 153, 0.5)";
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.boxShadow = "0 4px 15px rgba(168, 85, 247, 0.3)";
+                                }}>
+                                  🚀 Launch Event Quest
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </section>
+                    )}
+
                 {/* ── LIVE ASSESSMENTS ── */}
                 <section className={styles.examSection}>
                   <div className={styles.sectionHeader}>
@@ -661,7 +774,7 @@ export default function DashboardPage() {
               </div>
             )}
             
-            {activeNav !== "Home" && !["Profile", "History"].includes(activeNav) && (
+            {activeNav !== "Home" && !["Profile", "History", "Events"].includes(activeNav) && (
               <div className={styles.cardsGrid}>
                  {filteredExams.length > 0 ? (
                     filteredExams.map((exam: any) => (
@@ -674,6 +787,106 @@ export default function DashboardPage() {
                      <p>Stay tuned! New challenges in {activeNav} are being prepared for your node.</p>
                    </div>
                  )}
+              </div>
+            )}
+
+            {/* EVENTS MULTIPLAYER & ROUNDS OUTLINE */}
+            {activeNav === "Events" && (
+              <div className={styles.eventsLayout}>
+                {/* Left Column - List of Active Events */}
+                <div className={styles.eventsListCol}>
+                  {activeEvents.length === 0 ? (
+                    <div className={styles.emptyStateSimple}>
+                      No active events available at this moment.
+                    </div>
+                  ) : (
+                    activeEvents.map((evt) => (
+                      <div
+                        key={evt.id}
+                        className={`${styles.eventListCard} ${selectedEvent?.id === evt.id ? styles.eventListCardActive : ""}`}
+                        onClick={() => setSelectedEvent(evt)}
+                      >
+                        <div className={styles.eventListCardTitle}>{evt.name}</div>
+                        <div style={{ fontSize: "12px", opacity: 0.7, color: "#a1a1aa", lineHeight: "1.4" }}>
+                          {evt.description ? (evt.description.length > 80 ? evt.description.substring(0, 80) + "..." : evt.description) : "Click to view event details"}
+                        </div>
+                        <div className={styles.eventListCardMeta}>
+                          <span className={styles.eventListCardRounds}>
+                            🎯 {evt.rounds?.length || 0} Rounds
+                          </span>
+                          <span className={styles.eventListCardCreator}>
+                            By {evt.created_by_name || "Faculty"}
+                          </span>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                {/* Right Column - Selected Event Detail & Timeline */}
+                <div className={styles.eventDetailCol}>
+                  {selectedEvent ? (
+                    <>
+                      <div className={styles.eventDetailHeader}>
+                        <div>
+                          <h2 className={styles.eventDetailTitle}>{selectedEvent.name}</h2>
+                          <div style={{ fontSize: "12px", color: "var(--nexus-accent)", fontWeight: 700, marginTop: "6px", textTransform: "uppercase" }}>
+                            QUEST AUTHORIZATION REQUIRED
+                          </div>
+                        </div>
+                        <span style={{ fontSize: "11px", fontWeight: 800, padding: "4px 12px", borderRadius: "20px", background: "rgba(168, 85, 247, 0.15)", border: "1px solid rgba(168, 85, 247, 0.3)", color: "#c084fc", textTransform: "uppercase" }}>
+                          By {selectedEvent.created_by_name || "Faculty"}
+                        </span>
+                      </div>
+
+                      <p className={styles.eventDetailDesc}>
+                        {selectedEvent.description || "Enter the multiplayer challenge! Run through successive rounds of coding, aptitude, and jumbled lines logic to secure your high score."}
+                      </p>
+
+                      <div className={styles.roundsOutlineTitle}>Event Quest Journey</div>
+                      <div className={styles.roundsOutlineTimeline}>
+                        {selectedEvent.rounds && selectedEvent.rounds.length > 0 ? (
+                          selectedEvent.rounds.map((rnd: any) => (
+                            <div key={rnd.id} className={styles.roundTimelineItem}>
+                              <div className={styles.roundTimelineBadge}>
+                                {rnd.round_type === "mcq" ? "📝" : rnd.round_type === "programming" ? "💻" : "🔀"}
+                              </div>
+                              <div className={styles.roundTimelineContent}>
+                                <div className={styles.roundTimelineTitle}>Round {rnd.round_number}: {rnd.title}</div>
+                                <span className={styles.roundTimelineType}>
+                                  {rnd.round_type === "mcq" ? "Multiple Choice Quiz" : rnd.round_type === "programming" ? "Compiler Coding Challenge" : "Drag-and-Drop Code Jumble"}
+                                </span>
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <div style={{ padding: "16px", background: "rgba(255, 255, 255, 0.02)", border: "1px dashed rgba(255,255,255,0.08)", borderRadius: "12px", textAlign: "center", opacity: 0.6, fontSize: "13px" }}>
+                            No rounds configured for this event.
+                          </div>
+                        )}
+                      </div>
+
+                      {selectedEvent.rounds && selectedEvent.rounds.length > 0 && (
+                        <button
+                          className={styles.eventLaunchButton}
+                          onClick={() => {
+                            if (document.documentElement.requestFullscreen) {
+                              document.documentElement.requestFullscreen().catch(() => {});
+                            }
+                            push(`/events/play/${selectedEvent.id}`);
+                          }}
+                        >
+                          🚀 Authorize & Enter Event Quest
+                        </button>
+                      )}
+                    </>
+                  ) : (
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", flex: 1, opacity: 0.5, gap: "16px" }}>
+                      <span style={{ fontSize: "40px" }}>🎯</span>
+                      <div>Select an event from the list to view its details.</div>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 

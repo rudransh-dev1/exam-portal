@@ -46,7 +46,8 @@ const OrbitalControl    = nextDynamic(() => import("@/components/admin/control-p
 const AdminDashboard    = nextDynamic(() => import("@/components/admin/AdminDashboard"),                { ssr: false });
 const GradingQueue      = nextDynamic(() => import("@/components/admin/grading/GradingQueuePanel"),    { ssr: false });
 const SOSAdminPage      = nextDynamic(() => import("@/app/admin/sos/page"),                         { ssr: false });
-const PyHuntAdminTab    = nextDynamic(() => import("@/components/admin/PyHuntAdminTab"),                { ssr: false });
+const EventsAdminTab    = nextDynamic(() => import("@/components/admin/EventsAdminTab"),                { ssr: false });
+const FacultyAdminTab   = nextDynamic(() => import("@/components/admin/FacultyAdminTab"),               { ssr: false });
 const AdminBackground   = nextDynamic(() => import("@/components/admin/AdminBackground"),                { ssr: false });
 const AITestTool        = nextDynamic(() => import("@/components/admin/AITestTool"),                    { ssr: false });
 
@@ -95,7 +96,7 @@ function isStale(lastActive: string | null): boolean {
 
 const BRANCHES = BRANCH_IDS;
 const ALL_BRANCH_DATA = BRANCH_LIST;
-type Tab = "monitor" | "dashboard" | "questions" | "students" | "leaderboard" | "ingest" | "control" | "grading" | "sos" | "pyhunt" | "analytics" | "ai_test";
+type Tab = "monitor" | "dashboard" | "questions" | "students" | "leaderboard" | "ingest" | "control" | "grading" | "sos" | "pyhunt" | "faculty" | "analytics" | "ai_test";
 const ADMIN_AUTH_KEY = "examguard_admin_auth";
 
 function getStoredAuth(): boolean {
@@ -452,6 +453,7 @@ export default function AdminPage() {
     { id: "leaderboard", label: "Leaderboard", icon: "⚡" },
     { id: "questions",   label: "Exam",        icon: "📋" },
     { id: "pyhunt",      label: "Events",      icon: "🏆" },
+    { id: "faculty",     label: "Faculty",     icon: "👩‍🏫" },
     { id: "students",    label: "Students",    icon: "👥" },
     { id: "ingest",      label: "Harvester",   icon: "🌌" },
     // { id: "control",     label: "Control",     icon: "🛸" },  // Commented out – not needed yet
@@ -672,7 +674,8 @@ export default function AdminPage() {
       {activeTab === "questions"   && <QuestionsTab students={students} />}
       {activeTab === "students"    && <StudentsTab />}
       {activeTab === "sos"         && <SOSAdminPage />}
-      {activeTab === "pyhunt"      && <PyHuntAdminTab />}
+      {activeTab === "pyhunt"      && <EventsAdminTab />}
+      {activeTab === "faculty"     && <FacultyAdminTab />}
       {activeTab === "ai_test"     && (
         <div className={adminStyles.managementPage}>
           <div className={adminStyles.header}>

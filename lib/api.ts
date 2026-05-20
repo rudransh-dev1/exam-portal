@@ -608,6 +608,30 @@ export async function fetchExamHistory(category?: string): Promise<ExamResult[]>
   return res.results;
 }
 
+export async function fetchActiveEvents(): Promise<any[]> {
+  return apiFetch<any[]>("/events/active");
+}
+
+export async function fetchEventHistory(): Promise<any[]> {
+  return apiFetch<any[]>("/events/history");
+}
+
+export async function submitEvent(payload: {
+  event_id: string;
+  student_id: string;
+  student_name: string;
+  student_usn: string;
+  score: number;
+  total_marks: number;
+  rounds_data: any;
+}): Promise<any> {
+  return apiFetch<any>("/events/submit", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+
 export async function startExam(examTitle: string): Promise<{ started_at: string; status: string }> {
   const token = typeof window !== "undefined" ? sessionStorage.getItem("exam_token") || "" : "";
   const res = await fetch(`${API_BASE}/exam/start-exam?title=${encodeURIComponent(examTitle)}`, {
