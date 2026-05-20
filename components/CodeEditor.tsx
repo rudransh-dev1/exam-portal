@@ -54,27 +54,18 @@ export default function CodeEditor({
   savedCode,
   language = "python",
 }: CodeEditorProps) {
-  // ── Language States ──
+  // ── Language Selector State ──
   const [selectedLanguage, setSelectedLanguage] = useState(language);
-  const [codes, setCodes] = useState<Record<string, string>>(() => {
-    return {
-      python: language === "python" ? (savedCode || starterCode || LANG_COMMENTS.python) : LANG_COMMENTS.python,
-      c: language === "c" ? (savedCode || starterCode || LANG_COMMENTS.c) : LANG_COMMENTS.c,
-      cpp: language === "cpp" ? (savedCode || starterCode || LANG_COMMENTS.cpp) : LANG_COMMENTS.cpp,
-      java: language === "java" ? (savedCode || starterCode || LANG_COMMENTS.java) : LANG_COMMENTS.java,
-    };
+
+  // ── Single Unified Code State (avoids wiping student's typed code) ──
+  const [code, setCode] = useState(() => {
+    if (savedCode) return savedCode;
+    if (starterCode) return starterCode;
+    return LANG_COMMENTS[language] || `# Write your solution here\n`;
   });
 
-  const code = codes[selectedLanguage] || "";
   const isPython = selectedLanguage === "python";
   const langLabel = LANG_LABELS[selectedLanguage] || selectedLanguage;
-
-  const updateCode = (newVal: string) => {
-    setCodes(prev => ({
-      ...prev,
-      [selectedLanguage]: newVal
-    }));
-  };
 
   const [engineStatus, setEngineStatus] = useState<EngineStatus>("ready");
   const [results, setResults] = useState<TestResult[]>([]);
@@ -164,7 +155,6 @@ export default function CodeEditor({
     worker.onmessage = (e) => {
       const { type } = e.data;
       if (type === "ready") {
-        // Only set status to ready if the current selected language is Python
         if (langRef.current === "python") setEngineStatus("ready");
       } else if (type === "loading") {
         if (langRef.current === "python") setEngineStatus("loading");
@@ -200,12 +190,51 @@ export default function CodeEditor({
     return () => worker.terminate();
   }, []);
 
+  const handleLanguageChange = (newLang: string) => {
+    if (isSubmitted) return;
+
+    // Smart swap: if they haven't typed custom code yet, switch starter code template.
+    // Otherwise, preserve whatever custom code they wrote so it is never lost!
+    const isUntouched = 
+      code === "" || 
+      code === LANG_COMMENTS[selectedLanguage] || 
+      code === starterCode;
+
+    if (isUntouched) {
+      setCode(LANG_COMMENTS[newLang] || `// Write your ${LANG_LABELS[newLang]} solution here\n`);
+    }
+
+    setSelectedLanguage(newLang);
+    setEngineStatus("ready");
+    setAiFeedback(null);
+  };
+
   const handleRun = useCallback(() => {
     if (engineStatus !== "ready" || isSubmitted) return;
 
+    // ── Ultra-Premium Magic: Auto-detect language if they wrote C/C++/Java in Python mode ──
+    let activeLang = selectedLanguage;
+    if (selectedLanguage === "python") {
+      const codeTrimmed = code.trim();
+      if (codeTrimmed.includes("#include") || codeTrimmed.includes("printf(") || codeTrimmed.includes("scanf(")) {
+        activeLang = "c";
+      } else if (codeTrimmed.includes("std::") || codeTrimmed.includes("cout <<") || codeTrimmed.includes("cin >>")) {
+        activeLang = "cpp";
+      } else if (codeTrimmed.includes("public class ") || codeTrimmed.includes("System.out.print")) {
+        activeLang = "java";
+      }
+
+      if (activeLang !== "python") {
+        setSelectedLanguage(activeLang);
+        setAiFeedback(`🤖 Auto-detected ${LANG_LABELS[activeLang]} code! Switched compiler language for you.`);
+        callAIEval(code, activeLang);
+        return;
+      }
+    }
+
     // ── Non-Python: route to AI auto-grader ──
-    if (!isPython) {
-      callAIEval(code, selectedLanguage);
+    if (activeLang !== "python") {
+      callAIEval(code, activeLang);
       return;
     }
 
@@ -222,7 +251,7 @@ export default function CodeEditor({
       questionId,
       timeoutMs: 10000,
     });
-  }, [code, testCases, questionId, engineStatus, isSubmitted, isPython, selectedLanguage, callAIEval]);
+  }, [code, testCases, questionId, engineStatus, isSubmitted, selectedLanguage, callAIEval]);
 
   // Handle Tab key in textarea
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -233,7 +262,7 @@ export default function CodeEditor({
       const start = ta.selectionStart;
       const end = ta.selectionEnd;
       const newCode = code.substring(0, start) + "    " + code.substring(end);
-      updateCode(newCode);
+      setCode(newCode);
       requestAnimationFrame(() => {
         ta.selectionStart = ta.selectionEnd = start + 4;
       });
@@ -258,13 +287,7 @@ export default function CodeEditor({
           <label style={{ fontSize: "12px", color: "rgba(255,255,255,0.5)", fontWeight: "bold" }}>Language:</label>
           <select
             value={selectedLanguage}
-            onChange={(e) => {
-              if (isSubmitted) return;
-              const newLang = e.target.value;
-              setSelectedLanguage(newLang);
-              setEngineStatus("ready");
-              setAiFeedback(null);
-            }}
+            onChange={(e) => handleLanguageChange(e.target.value)}
             disabled={isSubmitted}
             style={{
               background: "rgba(0, 0, 0, 0.4)",
@@ -339,7 +362,7 @@ export default function CodeEditor({
                 height: "100%",
               }}
               value={code}
-              onChange={(e) => !isSubmitted && updateCode(e.target.value)}
+              onChange={(e) => !isSubmitted && setCode(e.target.value)}
               onKeyDown={handleKeyDown}
               disabled={isSubmitted}
               spellCheck={false}
@@ -386,7 +409,7 @@ export default function CodeEditor({
                 color: "#c084fc",
                 lineHeight: "1.4"
               }}>
-                🤖 <strong>AI Grader:</strong> {aiFeedback}
+                🤖 <strong>System Alert:</strong> {aiFeedback}
               </div>
             )}
 
