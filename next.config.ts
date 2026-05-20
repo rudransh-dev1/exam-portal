@@ -38,6 +38,13 @@ const nextConfig: NextConfig = {
           { key: "Pragma", value: "no-cache" },
         ],
       },
+      {
+        source: "/py-api/(.*)",
+        headers: [
+          { key: "Cache-Control", value: "no-store, no-cache, must-revalidate" },
+          { key: "Pragma", value: "no-cache" },
+        ],
+      },
     ];
   },
 
@@ -51,18 +58,10 @@ const nextConfig: NextConfig = {
   },
 
   async rewrites() {
-    // In production: proxy to the Python Serverless Function built by Vercel
-    if (process.env.NODE_ENV === "production") {
-      return [
-        {
-          source: "/api/:path*",
-          destination: "/python_api/index",
-        },
-      ];
-    }
     // In dev: proxy to local Python backend
+    // In production: vercel.json handles /py-api rewrites natively
     return [
-      { source: "/api/:path*", destination: "http://127.0.0.1:8000/api/:path*" },
+      { source: "/py-api/:path*", destination: "http://127.0.0.1:8000/py-api/:path*" },
     ];
   },
 };

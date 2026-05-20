@@ -23,7 +23,7 @@ if (typeof window === "undefined") {
   };
 }
 
-export const API_BASE = "/api";
+export const API_BASE = "/py-api";
 export const ADMIN_SECRET = process.env.NEXT_PUBLIC_ADMIN_SECRET || "rudranshsarvam";
 
 // --- Types ---

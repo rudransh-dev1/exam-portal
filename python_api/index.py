@@ -13,7 +13,7 @@ app = FastAPI(
     title="ExamGuard API",
     description="Online Exam System",
     version="1.0.5",
-    docs_url="/api/docs",
+    docs_url="/py-api/docs",
     redoc_url=None,
 )
 
@@ -27,12 +27,12 @@ app.add_middleware(
 )
 
 # Health always works
-@app.get("/api/health")
+@app.get("/py-api/health")
 @app.get("/health")
 async def health_check():
     return {"status": "ok", "version": "1.0.5", "timestamp": datetime.now(timezone.utc).isoformat()}
 
-@app.get("/api")
+@app.get("/py-api")
 @app.get("/")
 async def root():
     return {"message": "ExamGuard API Active", "version": "1.0.4"}
@@ -63,14 +63,14 @@ try:
     # Define routers list
     routers_list = [auth, exam, violations, admin, ingest, leaderboard, sessions, sync, uploads, aggregate, admin_auth, grading, support, pyhunt_engine, pyhunt]
 
-    # Mount routers with /api prefix only
-    # Vercel routes /api/* → this lambda, so root-mounting is redundant and wastes memory
+    # Mount routers with /py-api prefix only
+    # Vercel routes /py-api/* → this lambda, so root-mounting is redundant and wastes memory
     for r in routers_list:
-        app.include_router(r.router, prefix="/api")
+        app.include_router(r.router, prefix="/py-api")
 
 
 
-    @app.post("/api/admin/run-migrations")
+    @app.post("/py-api/admin/run-migrations")
     async def run_migrations(request: Request):
         """Run pending DB migrations. Admin-only."""
         from core.config import get_settings as _gs
@@ -99,7 +99,7 @@ try:
         return {"status": "done", "results": results}
 
     # Cron
-    @app.get("/api/cron/evict")
+    @app.get("/py-api/cron/evict")
     async def cron_evict():
         try:
             db = get_supabase()
@@ -141,7 +141,7 @@ except Exception as e:
     _init_traceback = traceback.format_exc()
 
 # Error endpoint — always registered
-@app.get("/api/error")
+@app.get("/py-api/error")
 async def startup_error():
     if _init_error:
         return JSONResponse(status_code=500, content={
