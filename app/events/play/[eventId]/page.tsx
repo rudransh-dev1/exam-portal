@@ -295,6 +295,11 @@ export default function EventPlayPage({ params }: { params: Promise<{ eventId: s
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -60 }}
               transition={{ duration: 0.3 }}
+              style={{
+                maxWidth: round.round_type === "programming" ? "1300px" : "900px",
+                width: "95%",
+                transition: "max-width 0.3s ease",
+              }}
             >
               <div className={styles.roundHeader}>
                 <h2 className={styles.roundTitle}>

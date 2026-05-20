@@ -28,7 +28,9 @@ export default function EventProgrammingRound({ round, onComplete }: EventProgra
   const handleSubmit = (code: string, results: any[], passedCount: number, totalCount: number) => {
     setSubmitted(true);
     setCodeSnapshot(code);
-    const score = totalCount > 0 ? Math.round((passedCount / totalCount) * 100) : 0;
+    // Students only get full points (100) if ALL test cases pass. If any test case is incorrect, they get 0 points.
+    const allPassed = totalCount > 0 && passedCount === totalCount;
+    const score = allPassed ? 100 : 0;
     onComplete(score, {
       code,
       results,
