@@ -1,10 +1,10 @@
 /**
- * Service Worker — exam-portal v6
+ * Service Worker — exam-portal v7
  * ONLY caches Pyodide CDN files and hashed Next.js static assets.
- * HTML pages are NEVER cached — always network-first.
+ * HTML pages + ALL API routes (/api/ AND /py-api/) are NEVER cached.
  */
 
-const CACHE_VERSION = "v6";
+const CACHE_VERSION = "v7";
 const PYODIDE_CACHE = `exam-pyodide-${CACHE_VERSION}`;
 const STATIC_CACHE  = `exam-static-${CACHE_VERSION}`;
 const PYODIDE_CDN   = "https://cdn.jsdelivr.net/pyodide/v0.25.1/full/";
@@ -64,6 +64,7 @@ self.addEventListener("fetch", (event) => {
   // API, Supabase, Cloudinary: ALWAYS network (no cache ever)
   if (
     url.pathname.startsWith("/api/") ||
+    url.pathname.startsWith("/py-api/") ||
     url.host.includes("supabase.co") ||
     url.host.includes("cloudinary.com") ||
     url.host.includes("fonts.googleapis.com") ||

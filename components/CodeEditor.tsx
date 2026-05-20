@@ -71,6 +71,8 @@ export default function CodeEditor({
   const [passedCount, setPassedCount] = useState(0);
   const [hasRun, setHasRun] = useState(false);
   const [activeTab, setActiveTab] = useState<"code" | "output">("code");
+  const [failedAttempts, setFailedAttempts] = useState(0);
+  const [aiFeedback, setAiFeedback] = useState<string | null>(null);
   const workerRef = useRef<Worker | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -93,6 +95,22 @@ export default function CodeEditor({
         setHasRun(true);
         setEngineStatus("ready");
         setActiveTab("output");
+
+        // Track consecutive failures for AI fallback
+        if (pc < totalCount) {
+          setFailedAttempts(prev => {
+            const newCount = prev + 1;
+            if (newCount >= 10) {
+              // After 10 failures, try AI evaluation
+              setAiFeedback("🤖 Pyodide tests failed 10 times. Requesting AI review...");
+              callAIEval();
+            }
+            return newCount;
+          });
+        } else {
+          setFailedAttempts(0); // Reset on success
+        }
+
         // Auto-submit to parent
         onSubmit(code, res, pc, totalCount);
       }
@@ -103,29 +121,65 @@ export default function CodeEditor({
     return () => worker.terminate();
   }, []);
 
-  const handleRun = useCallback(() => {
-    if (engineStatus !== "ready" || isSubmitted) return;
-
-    // ── Non-Python: mock successful compile with 500ms delay ──
-    if (!isPython) {
-      setEngineStatus("running");
-      setResults([]);
-      setHasRun(false);
-      setTimeout(() => {
-        const mockResults: TestResult[] = testCases.map((tc) => ({
-          input: tc.is_hidden ? "[hidden]" : tc.input,
-          expected: tc.is_hidden ? "[hidden]" : tc.expected_output,
-          actual: tc.is_hidden ? "[hidden]" : tc.expected_output,
-          passed: true,
-          description: tc.description || null,
-        }));
-        setResults(mockResults);
-        setPassedCount(mockResults.length);
+  // ── AI fallback evaluator ──
+  const callAIEval = useCallback(async () => {
+    setEngineStatus("running");
+    setAiFeedback(null);
+    try {
+      const token = sessionStorage.getItem("exam_token");
+      const res = await fetch("/py-api/eval/ai", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          code,
+          language,
+          eval_type: "programming",
+          question_context: questionId,
+          test_cases: testCases.map(tc => ({
+            input: tc.input,
+            expected_output: tc.expected_output,
+            description: tc.description,
+          })),
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const aiResults: TestResult[] = [{
+          input: "AI Evaluation",
+          expected: "Logically correct solution",
+          actual: data.passed ? "Correct" : "Incorrect",
+          passed: data.passed,
+          description: `🤖 ${data.feedback} (graded by ${data.graded_by})`,
+        }];
+        setResults(aiResults);
+        setPassedCount(data.passed ? testCases.length : 0);
         setHasRun(true);
         setEngineStatus("ready");
         setActiveTab("output");
-        onSubmit(code, mockResults, mockResults.length, mockResults.length);
-      }, 500);
+        setAiFeedback(data.feedback);
+        if (data.passed) {
+          setFailedAttempts(0);
+        }
+        onSubmit(code, aiResults, data.passed ? testCases.length : 0, testCases.length);
+      } else {
+        throw new Error("AI eval request failed");
+      }
+    } catch (err) {
+      console.warn("[CodeEditor] AI eval failed:", err);
+      setEngineStatus("ready");
+      setAiFeedback("AI grader temporarily unavailable. Please try again.");
+    }
+  }, [code, language, questionId, testCases, onSubmit]);
+
+  const handleRun = useCallback(() => {
+    if (engineStatus !== "ready" || isSubmitted) return;
+
+    // ── Non-Python: send to AI evaluator (can't run C/C++/Java in browser) ──
+    if (!isPython) {
+      callAIEval();
       return;
     }
 
@@ -134,6 +188,7 @@ export default function CodeEditor({
     setEngineStatus("running");
     setResults([]);
     setHasRun(false);
+    setAiFeedback(null);
     workerRef.current.postMessage({
       type: "exam",
       code,
@@ -141,7 +196,7 @@ export default function CodeEditor({
       questionId,
       timeoutMs: 10000,
     });
-  }, [code, testCases, questionId, engineStatus, isSubmitted, isPython, onSubmit]);
+  }, [code, testCases, questionId, engineStatus, isSubmitted, isPython, onSubmit, callAIEval]);
 
   // Handle Tab key in textarea
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {

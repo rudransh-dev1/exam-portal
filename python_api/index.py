@@ -26,6 +26,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.middleware("http")
+async def no_cache_api(request: Request, call_next):
+    response = await call_next(request)
+    if request.url.path.startswith("/py-api/"):
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, private"
+        response.headers["Pragma"] = "no-cache"
+    return response
+
 # Health always works
 @app.get("/py-api/health")
 @app.get("/health")
@@ -52,7 +60,7 @@ try:
 
     from db.supabase_client import get_supabase
     from core.config import get_settings
-    from routers import auth, exam, violations, admin, ingest, leaderboard, sessions, sync, uploads, aggregate, admin_auth, grading, support, pyhunt_engine, pyhunt, events, faculty
+    from routers import auth, exam, violations, admin, ingest, leaderboard, sessions, sync, uploads, aggregate, admin_auth, grading, support, pyhunt_engine, pyhunt, events, faculty, eval as eval_router
     # nvidia_ai removed — AI now handled by Next.js Edge (Groq)
 
     logging.basicConfig(
@@ -65,7 +73,7 @@ try:
 
     # Single mount with /api prefix for consistency
     # Define routers list
-    routers_list = [auth, exam, violations, admin, ingest, leaderboard, sessions, sync, uploads, aggregate, admin_auth, grading, support, pyhunt_engine, pyhunt, events, faculty]
+    routers_list = [auth, exam, violations, admin, ingest, leaderboard, sessions, sync, uploads, aggregate, admin_auth, grading, support, pyhunt_engine, pyhunt, events, faculty, eval_router]
 
     # Mount routers with /py-api prefix only
     # Vercel routes /py-api/* → this lambda, so root-mounting is redundant and wastes memory

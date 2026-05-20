@@ -188,10 +188,11 @@ async def events_beacon(request: Request):
 
 
 # ── /api/sync ─────────────────────────────────────────────────────────────────
-# Called on reconnect to drain IDB queue
+# Called every 30s to drain IDB queue + receive server directives
 
 class SyncRequest(BaseModel):
     session_id: str
+    client_ts:  Optional[str] = None
     responses:  List[ResponseItem] = Field(default_factory=list)
     events:     List[EventItem]    = Field(default_factory=list)
 
@@ -200,6 +201,37 @@ async def sync(req: SyncRequest, user=Depends(get_current_student)):
     sb = get_supabase()
     now_iso = datetime.now(timezone.utc).isoformat()
 
+    # ── 1. Check if student is banned or session was reset ──
+    student = (
+        sb.table("students")
+        .select("id, is_banned, exams_completed")
+        .eq("id", user["id"])
+        .maybe_single()
+        .execute()
+    )
+    if student.data and student.data.get("is_banned"):
+        return {
+            "status": "banned",
+            "action": "lock",
+            "message": "Your account has been suspended by the administrator.",
+        }
+
+    # ── 2. Check session status (admin may have reset it) ──
+    sess = (
+        sb.table("quiz_sessions")
+        .select("id, status, exam_id")
+        .eq("id", req.session_id)
+        .eq("user_id", user["id"])
+        .maybe_single()
+        .execute()
+    )
+    if sess.data:
+        if sess.data.get("status") == "TERMINATED":
+            return {"status": "terminated", "action": "lock", "message": "Session terminated by admin."}
+        if sess.data.get("status") == "SUBMITTED":
+            return {"status": "submitted", "action": "none"}
+
+    # ── 3. Upsert responses (autosave) ──
     upserted = 0
     if req.responses:
         rows = [
@@ -215,6 +247,7 @@ async def sync(req: SyncRequest, user=Depends(get_current_student)):
         sb.table("quiz_responses").upsert(rows, on_conflict="session_id,question_id").execute()
         upserted = len(rows)
 
+    # ── 4. Insert telemetry events (deduped) ──
     inserted = 0
     if req.events:
         rows = [
@@ -230,4 +263,43 @@ async def sync(req: SyncRequest, user=Depends(get_current_student)):
         sb.table("quiz_telemetry").upsert(rows, on_conflict="id", ignore_duplicates=True).execute()
         inserted = len(rows)
 
-    return {"status": "ok", "upserted_responses": upserted, "inserted_events": inserted}
+    # ── 5. Update session last_activity ──
+    if sess.data:
+        sb.table("quiz_sessions").update({"last_activity_at": now_iso}).eq("id", req.session_id).execute()
+
+    # ── 6. Get current exam version for staleness detection ──
+    exam_version = None
+    if sess.data and sess.data.get("exam_id"):
+        exam_cfg = (
+            sb.table("exam_config")
+            .select("updated_at")
+            .eq("id", sess.data["exam_id"])
+            .maybe_single()
+            .execute()
+        )
+        if exam_cfg.data:
+            exam_version = exam_cfg.data.get("updated_at")
+
+    # ── 7. Dynamic throttle based on Redis active count ──
+    try:
+        from core.redis_client import get_redis
+        redis = get_redis()
+        active_count = int(redis.get("active_student_count") or 0)
+        # Refresh count with a short TTL window
+        redis.setex("active_student_count", 60, max(active_count, 1))
+    except Exception:
+        active_count = 0
+
+    throttle_interval = 60 if active_count > 300 else 30
+
+    return {
+        "status": "ok",
+        "action": "none",
+        "upserted_responses": upserted,
+        "inserted_events": inserted,
+        "exam_version": exam_version,
+        "throttle": {
+            "enabled": active_count > 300,
+            "interval_seconds": throttle_interval,
+        },
+    }
