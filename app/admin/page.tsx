@@ -2296,35 +2296,44 @@ function LiveEventsFeed({ students }: { students: StudentRow[] }) {
   const [events, setEvents] = useState<{ id: string, name: string, usn: string, event: string, time: string, type: string }[]>([]);
 
   useEffect(() => {
-    const fetchRecent = async () => {
-      try {
-        const { data } = await supabase.from("student_logs")
-          .select("id, usn, timestamp, event_type")
-          .order("timestamp", { ascending: false })
-          .limit(10);
-        
-        if (data) {
-          const enhanced = data.map((log: any) => {
-            const st = students.find(s => s.usn === log.usn);
-            return {
-              id: log.id.toString(),
-              name: st?.name || "Unknown",
-              usn: log.usn,
-              event: log.event_type.replace(/_/g, " ").toUpperCase(),
-              time: new Date(log.timestamp).toLocaleTimeString(),
-              type: log.event_type.includes("warning") || log.event_type.includes("violation") ? "warning" 
-                    : log.event_type.includes("submit") ? "success" : "info"
-            };
-          });
-          setEvents(enhanced);
-        }
-      } catch (e) {
-        console.error(e);
+    // Derive events from students status
+    const newEvents: typeof events = [];
+    
+    // Sort students by recent activity
+    const sorted = [...students].sort((a, b) => {
+      const aTime = a.submitted_at || a.last_active || "";
+      const bTime = b.submitted_at || b.last_active || "";
+      return bTime.localeCompare(aTime);
+    }).slice(0, 15);
+
+    sorted.forEach(s => {
+      let eventType = "Active";
+      let type = "info";
+      let timeStr = s.last_active;
+      
+      if (s.status === "submitted") {
+        eventType = "Submitted Quiz";
+        type = "success";
+        timeStr = s.submitted_at || s.last_active;
+      } else if (s.warnings > 0) {
+        eventType = `Warning (${s.warnings})`;
+        type = "warning";
+      } else if (s.status === "not_started") {
+        eventType = "Idle";
+        type = "info";
       }
-    };
-    fetchRecent();
-    const interval = setInterval(fetchRecent, 10000);
-    return () => clearInterval(interval);
+
+      newEvents.push({
+        id: `${s.usn}-${s.status}-${s.warnings}`,
+        name: s.name,
+        usn: s.usn,
+        event: eventType,
+        time: timeStr ? new Date(timeStr).toLocaleTimeString() : new Date().toLocaleTimeString(),
+        type
+      });
+    });
+
+    setEvents(newEvents);
   }, [students]);
 
   return (

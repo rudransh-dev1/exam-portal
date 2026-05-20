@@ -59,10 +59,12 @@ const nextConfig: NextConfig = {
 
   async rewrites() {
     // In dev: proxy to local Python backend
-    // In production: vercel.json handles /py-api rewrites natively
-    return [
-      { source: "/py-api/:path*", destination: "http://127.0.0.1:8000/py-api/:path*" },
-    ];
+    if (process.env.NODE_ENV === "development") {
+      return [
+        { source: "/py-api/:path*", destination: "http://127.0.0.1:8000/py-api/:path*" },
+      ];
+    }
+    return [];
   },
 };
 
