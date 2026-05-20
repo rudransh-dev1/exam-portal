@@ -1,6 +1,5 @@
 /* ── ExamGuard: Premium Deep-Blue Glassmorphic Auth ── */
 
-/* ── Main Container ── */
 .container {
   height: 100vh;
   display: flex;
@@ -10,64 +9,30 @@
   padding: 24px;
   position: relative;
   overflow: hidden;
-  background: linear-gradient(145deg, #0a1628 0%, #0f2347 35%, #162d5a 60%, #0d1f42 100%);
+  background: #09090b; /* Sleek dark flat background */
   font-family: 'Inter', sans-serif;
 }
 
-/* Animated floating orbs for depth */
-.container::before {
-  content: "";
-  position: absolute;
-  top: -30%;
-  left: -10%;
-  width: 600px;
-  height: 600px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(59,130,246,0.15) 0%, transparent 70%);
-  animation: orbFloat1 12s ease-in-out infinite;
-  z-index: 1;
-  pointer-events: none;
+/* ── Card Animation ── */
+@keyframes cardEntry {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes orbFloat1 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  50% { transform: translate(60px, 40px) scale(1.1); }
-}
-
-/* Background Image Layer */
-.bgImage {
-  position: absolute;
-  inset: 0;
+/* ── Glass Card (Sleek Modern) ── */
+.card {
   width: 100%;
-  height: 100%;
-  object-fit: cover;
-  filter: blur(6px) brightness(0.4) saturate(1.2); /* Darkened slightly to ensure massive text legibility */
-  z-index: 0;
-  pointer-events: none;
-  user-select: none;
-}
-
-/* 3D Orb Background Container */
-.orbContainer {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 100vw;
-  height: 100vh;
-  z-index: 1;
-  pointer-events: none; /* Let clicks pass through to the form */
-  opacity: 0.65;
-}
-
-/* Subtle Vignette to focus the center */
-.container::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(circle at center, transparent 30%, rgba(8, 16, 38, 0.75) 100%);
-  z-index: 2;
-  pointer-events: none;
+  max-width: 420px;
+  background: #18181b; /* Flat sleek dark card */
+  border: 1px solid #27272a; /* Subtle border */
+  border-radius: 16px;
+  padding: 48px 40px 36px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+  position: relative;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  animation: cardEntry 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 /* ── Card Animation ── */

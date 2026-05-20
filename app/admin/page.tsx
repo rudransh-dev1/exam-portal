@@ -511,146 +511,155 @@ export default function AdminPage() {
       {/* ── Monitor Tab ── */}
       {activeTab === "monitor" && (
         <>
-          {/* ── Canva-Style 3 Hero Stat Cards ── */}
-          <div className={styles.heroGrid}>
-            {/* Active Students */}
-            <div className={styles.statCard}>
-              <div className={styles.statIcon} style={{ background: "rgba(25,118,210,0.1)", border: "1px solid rgba(25,118,210,0.2)" }}>👥</div>
-              <div>
-                <div className={styles.statValue}>
-                  {active}
-                  <span className={styles.statSub}>
-                    ({idle} stale/idle)
-                  </span>
-                </div>
-                <div className={styles.statLabel}>Active Students</div>
-              </div>
-            </div>
-
-            {/* Total Violations */}
-            <div className={styles.statCard}>
-              <div className={styles.statIcon} style={{ background: "rgba(237,108,2,0.1)", border: "1px solid rgba(237,108,2,0.2)" }}>⚠️</div>
-              <div>
-                <div className={styles.statValue} style={{ color: "var(--warning)" }}>
-                  {students.reduce((sum, s) => sum + (s.warnings || 0), 0)}
-                </div>
-                <div className={styles.statLabel}>Total Violations</div>
-              </div>
-            </div>
-
-            {/* Completed Quizzes */}
-            <div className={styles.statCard}>
-              <div className={styles.statIcon} style={{ background: "rgba(46,125,50,0.1)", border: "1px solid rgba(46,125,50,0.2)" }}>✅</div>
-              <div>
-                <div className={styles.statValue} style={{ color: "var(--success)" }}>
-                  {submitted}
-                </div>
-                <div className={styles.statLabel}>Completed Quizzes</div>
-              </div>
-            </div>
-          </div>
-
-          {/* ── Violation Alerts Feed ── */}
-          <ViolationAlertsFeed students={students} />
-
-          {/* Controls */}
-          <div className={styles.controls}>
-            <input type="text" className={adminStyles.input} placeholder="Search by name or USN…" value={search}
-              onChange={(e) => setSearch(e.target.value)} style={{ maxWidth: 300 }} />
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: 24, alignItems: "start" }}>
             
-            <select 
-              className={adminStyles.input} 
-              style={{ maxWidth: 200, padding: "8px 12px", cursor: "pointer" }}
-              value={quizFilter}
-              onChange={(e) => setQuizFilter(e.target.value)}
-              aria-label="Filter by Quiz"
-            >
-              <option value="all">All Quizzes</option>
-              {Array.from(new Set(quizzes.map(q => q.exam_name))).map(name => (
-                <option key={name} value={name}>{name}</option>
-              ))}
-            </select>
+            {/* ── Left Column ── */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+              {/* ── Canva-Style 3 Hero Stat Cards ── */}
+              <div className={styles.statsRow}>
+                {/* Active Students */}
+                <div className={styles.statCard}>
+                  <div className={styles.statIcon} style={{ background: "rgba(25,118,210,0.1)", border: "1px solid rgba(25,118,210,0.2)", borderRadius: 12, padding: 8, display: "inline-block", marginBottom: 12 }}>👥</div>
+                  <div>
+                    <div className={styles.statValue}>
+                      {active}
+                      <span style={{ fontSize: 14, color: "#94a3b8", marginLeft: 8 }}>
+                        ({idle} stale/idle)
+                      </span>
+                    </div>
+                    <div className={styles.statLabel}>Active Students</div>
+                  </div>
+                </div>
 
-            <div className={styles.filters}>
-              {(["all", "active", "submitted", "not_started"] as const).map((f) => (
-                <button key={f} className={`btn ${filter === f ? "btn-primary" : "btn-outline"}`}
-                  onClick={() => setFilter(f)} style={{ fontSize: 12, padding: "6px 14px" }}>
-                  {f === "not_started" ? "Not Started" : f.charAt(0).toUpperCase() + f.slice(1)}
-                </button>
-              ))}
-              <button className="btn btn-outline" onClick={handleCleanup} style={{ fontSize: 12, padding: "6px 14px", border: "1px dashed var(--warning)", color: "#9A4E0E" }}>
-                🧹 Cleanup Stale
-              </button>
+                {/* Total Violations */}
+                <div className={styles.statCard}>
+                  <div className={styles.statIcon} style={{ background: "rgba(237,108,2,0.1)", border: "1px solid rgba(237,108,2,0.2)", borderRadius: 12, padding: 8, display: "inline-block", marginBottom: 12 }}>⚠️</div>
+                  <div>
+                    <div className={styles.statValue} style={{ color: "var(--warning)" }}>
+                      {students.reduce((sum, s) => sum + (s.warnings || 0), 0)}
+                    </div>
+                    <div className={styles.statLabel}>Total Violations</div>
+                  </div>
+                </div>
+
+                {/* Completed Quizzes */}
+                <div className={styles.statCard}>
+                  <div className={styles.statIcon} style={{ background: "rgba(46,125,50,0.1)", border: "1px solid rgba(46,125,50,0.2)", borderRadius: 12, padding: 8, display: "inline-block", marginBottom: 12 }}>✅</div>
+                  <div>
+                    <div className={styles.statValue} style={{ color: "var(--success)" }}>
+                      {submitted}
+                    </div>
+                    <div className={styles.statLabel}>Completed Quizzes</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Controls */}
+              <div className={styles.controls}>
+                <input type="text" className={adminStyles.input} placeholder="Search by name or USN…" value={search}
+                  onChange={(e) => setSearch(e.target.value)} style={{ maxWidth: 300 }} />
+                
+                <select 
+                  className={adminStyles.input} 
+                  style={{ maxWidth: 200, padding: "8px 12px", cursor: "pointer" }}
+                  value={quizFilter}
+                  onChange={(e) => setQuizFilter(e.target.value)}
+                  aria-label="Filter by Quiz"
+                >
+                  <option value="all">All Quizzes</option>
+                  {Array.from(new Set(quizzes.map(q => q.exam_name))).map(name => (
+                    <option key={name} value={name}>{name}</option>
+                  ))}
+                </select>
+
+                <div className={styles.filters}>
+                  {(["all", "active", "submitted", "not_started"] as const).map((f) => (
+                    <button key={f} className={`btn ${filter === f ? "btn-primary" : "btn-outline"}`}
+                      onClick={() => setFilter(f)} style={{ fontSize: 12, padding: "6px 14px" }}>
+                      {f === "not_started" ? "Not Started" : f.charAt(0).toUpperCase() + f.slice(1)}
+                    </button>
+                  ))}
+                  <button className="btn btn-outline" onClick={handleCleanup} style={{ fontSize: 12, padding: "6px 14px", border: "1px dashed var(--warning)", color: "#9A4E0E" }}>
+                    🧹 Cleanup Stale
+                  </button>
+                </div>
+              </div>
+
+              {loading ? (
+                <div style={{ padding: 24, display: "flex", flexDirection: "column", gap: 12 }}>
+                  <Skeleton height={40} />
+                  <Skeleton height={40} />
+                  <Skeleton height={40} />
+                  <Skeleton height={40} />
+                  <Skeleton height={40} />
+                </div>
+              ) : (
+                <div className={styles.tableWrapper}>
+                  <table className={styles.table}>
+                    <thead>
+                      <tr>
+                        <th>#</th><th>USN NO.</th><th>Name</th><th>Email</th>
+                        <th>Branch</th><th>Status</th><th>Start Time</th><th>Total Time</th>
+                        <th>Submitted At</th><th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {visible.length === 0 ? (
+                        <tr><td colSpan={10} style={{ textAlign: "center", padding: 32, color: "var(--text-muted)" }}>No students found.</td></tr>
+                      ) : visible.map((s, i) => (
+                        <tr key={s.student_id} className={s.warnings >= 3 ? styles.rowDanger : s.warnings >= 2 ? styles.rowWarning : ""}>
+                          <td className="mono text-muted" style={{ fontSize: 12 }}>{i + 1}</td>
+                          <td><span className="mono" style={{ fontSize: 13 }}>{s.usn}</span></td>
+                          <td>{s.name}</td>
+                          <td style={{ fontSize: 12, color: "var(--text-muted)" }}>{s.email || "—"}</td>
+                          <td><span className="badge badge-neutral">{s.branch}</span></td>
+                          <td><StatusBadge status={s.status} lastActive={s.last_active} /></td>
+                          <td style={{ fontSize: 12 }}>{s.started_at ? new Date(s.started_at).toLocaleTimeString() : "—"}</td>
+                          <td style={{ fontSize: 12, color: "var(--text-muted)" }}>{getElapsedTime(s.started_at, s.submitted_at)}</td>
+                          <td style={{ fontSize: 12, color: "var(--text-muted)" }}>
+                            {s.submitted_at ? new Date(s.submitted_at).toLocaleTimeString() : "—"}
+                          </td>
+                          <td>
+                            <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                              {s.status === "active" && (
+                                <button className="btn btn-outline" style={{ fontSize: 10, padding: "4px 8px" }} onClick={() => handleForceSubmit(s)}>
+                                  Submit
+                                </button>
+                              )}
+                              {/* BAN: force-submit + lock until admin resets */}
+                              {!s.banned && s.status !== "submitted" && (
+                                <button
+                                  style={{ fontSize: 10, padding: "4px 8px", borderRadius: 6, border: "1px solid #ef4444", background: "rgba(239,68,68,0.12)", color: "#ef4444", cursor: "pointer", fontWeight: 700 }}
+                                  onClick={() => handleBanStudent(s)}
+                                  title="Force submit & lock — student cannot re-take until Reset"
+                                >
+                                  🚫 Ban
+                                </button>
+                              )}
+                              {s.banned && (
+                                <span style={{ fontSize: 10, padding: "4px 8px", borderRadius: 6, background: "rgba(239,68,68,0.08)", color: "#ef4444", fontWeight: 700, border: "1px solid rgba(239,68,68,0.2)" }}>
+                                  🔒 Banned
+                                </span>
+                              )}
+                              <button className="btn btn-outline" style={{ fontSize: 10, padding: "4px 8px" }} onClick={() => resetAdminStudent(s.student_id).then(fetchStudents)}>
+                                Reset
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            {/* ── Right Column ── */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+              <ViolationAlertsFeed students={students} />
+              <LiveEventsFeed students={students} />
             </div>
           </div>
-
-          {loading ? (
-            <div style={{ padding: 24, display: "flex", flexDirection: "column", gap: 12 }}>
-              <Skeleton height={40} />
-              <Skeleton height={40} />
-              <Skeleton height={40} />
-              <Skeleton height={40} />
-              <Skeleton height={40} />
-            </div>
-          ) : (
-            <div className={styles.tableWrapper}>
-              <table className={styles.table}>
-                <thead>
-                  <tr>
-                    <th>#</th><th>USN NO.</th><th>Name</th><th>Email</th>
-                    <th>Branch</th><th>Status</th><th>Start Time</th><th>Total Time</th>
-                    <th>Submitted At</th><th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {visible.length === 0 ? (
-                    <tr><td colSpan={10} style={{ textAlign: "center", padding: 32, color: "var(--text-muted)" }}>No students found.</td></tr>
-                  ) : visible.map((s, i) => (
-                    <tr key={s.student_id} className={s.warnings >= 3 ? styles.rowDanger : s.warnings >= 2 ? styles.rowWarning : ""}>
-                      <td className="mono text-muted" style={{ fontSize: 12 }}>{i + 1}</td>
-                      <td><span className="mono" style={{ fontSize: 13 }}>{s.usn}</span></td>
-                      <td>{s.name}</td>
-                      <td style={{ fontSize: 12, color: "var(--text-muted)" }}>{s.email || "—"}</td>
-                      <td><span className="badge badge-neutral">{s.branch}</span></td>
-                      <td><StatusBadge status={s.status} lastActive={s.last_active} /></td>
-                      <td style={{ fontSize: 12 }}>{s.started_at ? new Date(s.started_at).toLocaleTimeString() : "—"}</td>
-                      <td style={{ fontSize: 12, color: "var(--text-muted)" }}>{getElapsedTime(s.started_at, s.submitted_at)}</td>
-                      <td style={{ fontSize: 12, color: "var(--text-muted)" }}>
-                        {s.submitted_at ? new Date(s.submitted_at).toLocaleTimeString() : "—"}
-                      </td>
-                      <td>
-                        <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-                          {s.status === "active" && (
-                            <button className="btn btn-outline" style={{ fontSize: 10, padding: "4px 8px" }} onClick={() => handleForceSubmit(s)}>
-                              Submit
-                            </button>
-                          )}
-                          {/* BAN: force-submit + lock until admin resets */}
-                          {!s.banned && s.status !== "submitted" && (
-                            <button
-                              style={{ fontSize: 10, padding: "4px 8px", borderRadius: 6, border: "1px solid #ef4444", background: "rgba(239,68,68,0.12)", color: "#ef4444", cursor: "pointer", fontWeight: 700 }}
-                              onClick={() => handleBanStudent(s)}
-                              title="Force submit & lock — student cannot re-take until Reset"
-                            >
-                              🚫 Ban
-                            </button>
-                          )}
-                          {s.banned && (
-                            <span style={{ fontSize: 10, padding: "4px 8px", borderRadius: 6, background: "rgba(239,68,68,0.08)", color: "#ef4444", fontWeight: 700, border: "1px solid rgba(239,68,68,0.2)" }}>
-                              🔒 Banned
-                            </span>
-                          )}
-                          <button className="btn btn-outline" style={{ fontSize: 10, padding: "4px 8px" }} onClick={() => resetAdminStudent(s.student_id).then(fetchStudents)}>
-                            Reset
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
         </>
       )}
 
@@ -2282,5 +2291,68 @@ function StudentsTab() {
   );
 }
 
+// ── Live Events Feed ──
+function LiveEventsFeed({ students }: { students: StudentRow[] }) {
+  const [events, setEvents] = useState<{ id: string, name: string, usn: string, event: string, time: string, type: string }[]>([]);
 
+  useEffect(() => {
+    const fetchRecent = async () => {
+      try {
+        const { data } = await supabase.from("student_logs")
+          .select("id, usn, timestamp, event_type")
+          .order("timestamp", { ascending: false })
+          .limit(10);
+        
+        if (data) {
+          const enhanced = data.map(log => {
+            const st = students.find(s => s.usn === log.usn);
+            return {
+              id: log.id.toString(),
+              name: st?.name || "Unknown",
+              usn: log.usn,
+              event: log.event_type.replace(/_/g, " ").toUpperCase(),
+              time: new Date(log.timestamp).toLocaleTimeString(),
+              type: log.event_type.includes("warning") || log.event_type.includes("violation") ? "warning" 
+                    : log.event_type.includes("submit") ? "success" : "info"
+            };
+          });
+          setEvents(enhanced);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    fetchRecent();
+    const interval = setInterval(fetchRecent, 10000);
+    return () => clearInterval(interval);
+  }, [students]);
 
+  return (
+    <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 20, overflow: "hidden" }}>
+      <div style={{ padding: "16px 20px", borderBottom: "1px solid rgba(255,255,255,0.05)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <h3 style={{ fontSize: 13, margin: 0, color: "#fff", display: "flex", alignItems: "center", gap: 8, fontWeight: 800, letterSpacing: "0.05em", textTransform: "uppercase" }}>
+          <span style={{ display: "inline-block", width: 8, height: 8, background: "#3b82f6", borderRadius: "50%", boxShadow: "0 0 10px #3b82f6" }} />
+          Live Events
+        </h3>
+      </div>
+      <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 10, maxHeight: 400, overflowY: "auto" }}>
+        {events.length === 0 ? (
+          <div style={{ fontSize: 12, color: "var(--text-muted)", textAlign: "center", padding: 20 }}>No recent events.</div>
+        ) : (
+          events.map(e => (
+            <div key={e.id} style={{ display: "flex", gap: 12, alignItems: "flex-start", padding: 12, background: "rgba(0,0,0,0.2)", borderRadius: 12, border: "1px solid rgba(255,255,255,0.03)" }}>
+              <div style={{ width: 28, height: 28, borderRadius: 8, flexShrink: 0, background: e.type === "success" ? "rgba(16,185,129,0.1)" : e.type === "warning" ? "rgba(245,158,11,0.1)" : "rgba(59,130,246,0.1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13 }}>
+                {e.type === "success" ? "✅" : e.type === "warning" ? "⚠️" : "⚡"}
+              </div>
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "#fff" }}>{e.name} <span style={{ fontSize: 10, color: "var(--text-muted)", fontWeight: 500 }}>({e.usn})</span></div>
+                <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>{e.event}</div>
+                <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 4 }}>{e.time}</div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}

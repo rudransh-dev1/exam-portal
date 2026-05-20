@@ -138,10 +138,7 @@ export default function LoginPage() {
 
   return (
     <div className={styles.container}>
-      <Image src="/campus-bg.png" alt="" className={styles.bgImage} draggable={false} fill sizes="100vw" style={{ objectFit: "cover" }} priority />
-      <div className={styles.orbContainer}>
-        <GoldenOrb />
-      </div>
+
 
       <button className={styles.helpBtn} onClick={() => setView("support")}>
         <Shield size={14} /> Get Help
