@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Plus, Edit2, Trash2, X, RefreshCw, Key } from "lucide-react";
 import { adminFetch } from "@/lib/api";
+import styles from "./adminTabs.module.css";
 
 type Faculty = {
   id: string;
@@ -128,83 +129,83 @@ export default function FacultyAdminTab() {
 
   if (loading && faculty.length === 0) {
     return (
-      <div className="flex justify-center items-center h-64 text-[var(--accent-primary)]">
-        <RefreshCw className="animate-spin w-8 h-8" />
+      <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem', color: 'var(--accent-primary)' }}>
+        <RefreshCw style={{ animation: 'spin 1s linear infinite' }} />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
+    <div className={styles.container}>
+      <div className={styles.headerRow}>
         <div>
-          <h2 className="text-2xl font-bold text-[var(--text-primary)]">Faculty Management</h2>
-          <p className="text-[var(--text-secondary)]">Create and manage faculty accounts who can host exams and events.</p>
+          <h2 className={styles.title}>Faculty Management</h2>
+          <p className={styles.subtitle}>Create and manage faculty accounts who can host exams and events.</p>
         </div>
         <button
           onClick={() => handleOpenModal()}
-          className="bg-[var(--accent-primary)] text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-[var(--accent-hover)] transition-colors"
+          className={styles.primaryButton}
         >
-          <Plus className="w-4 h-4" />
+          <Plus size={16} />
           Add Faculty
         </button>
       </div>
 
       {error && (
-        <div className="bg-red-500/10 border border-red-500/50 text-red-500 p-4 rounded-lg">
+        <div className={styles.errorBox}>
           {error}
         </div>
       )}
 
-      <div className="bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-color)] overflow-hidden">
-        <table className="w-full text-left">
-          <thead className="bg-[var(--bg-tertiary)] border-b border-[var(--border-color)] text-[var(--text-secondary)]">
+      <div className={styles.tableContainer}>
+        <table className={styles.table}>
+          <thead>
             <tr>
-              <th className="p-4 font-medium">Name</th>
-              <th className="p-4 font-medium">Email</th>
-              <th className="p-4 font-medium">Department</th>
-              <th className="p-4 font-medium">Joined</th>
-              <th className="p-4 font-medium text-right">Actions</th>
+              <th className={styles.th}>Name</th>
+              <th className={styles.th}>Email</th>
+              <th className={styles.th}>Department</th>
+              <th className={styles.th}>Joined</th>
+              <th className={styles.th} style={{ textAlign: "right" }}>Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-[var(--border-color)]">
+          <tbody>
             {faculty.map((fac) => (
-              <tr key={fac.id} className="hover:bg-[var(--bg-tertiary)] transition-colors">
-                <td className="p-4 text-[var(--text-primary)] font-medium">{fac.name}</td>
-                <td className="p-4 text-[var(--text-secondary)]">{fac.email}</td>
-                <td className="p-4 text-[var(--text-secondary)]">
+              <tr key={fac.id} className={styles.tr}>
+                <td className={styles.td} style={{ fontWeight: 500 }}>{fac.name}</td>
+                <td className={styles.td} style={{ color: 'var(--text-secondary)' }}>{fac.email}</td>
+                <td className={styles.td}>
                   {fac.department ? (
-                    <span className="bg-[var(--bg-primary)] px-2 py-1 rounded text-xs border border-[var(--border-color)]">
+                    <span className={styles.badge}>
                       {fac.department}
                     </span>
                   ) : (
-                    <span className="text-gray-500 italic">None</span>
+                    <span style={{ fontStyle: 'italic', color: '#6b7280' }}>None</span>
                   )}
                 </td>
-                <td className="p-4 text-[var(--text-secondary)] text-sm">
+                <td className={styles.td} style={{ fontSize: '0.875rem' }}>
                   {new Date(fac.created_at).toLocaleDateString()}
                 </td>
-                <td className="p-4 flex justify-end gap-2">
+                <td className={styles.td} style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
                   <button
                     onClick={() => handleOpenModal(fac)}
-                    className="p-2 text-[var(--text-secondary)] hover:text-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/10 rounded-lg transition-colors"
+                    className={styles.iconBtn}
                     title="Edit Faculty"
                   >
-                    <Edit2 className="w-4 h-4" />
+                    <Edit2 size={16} />
                   </button>
                   <button
                     onClick={() => handleDelete(fac.id)}
-                    className="p-2 text-[var(--text-secondary)] hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
+                    className={`${styles.iconBtn} ${styles.iconBtnDanger}`}
                     title="Delete Faculty"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 size={16} />
                   </button>
                 </td>
               </tr>
             ))}
             {faculty.length === 0 && (
               <tr>
-                <td colSpan={5} className="p-8 text-center text-[var(--text-secondary)]">
+                <td colSpan={5} className={styles.td} style={{ textAlign: "center", padding: "2rem", color: 'var(--text-secondary)' }}>
                   No faculty members found.
                 </td>
               </tr>
@@ -214,92 +215,89 @@ export default function FacultyAdminTab() {
       </div>
 
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
-            <div className="flex justify-between items-center p-6 border-b border-[var(--border-color)]">
-              <h3 className="text-xl font-bold text-[var(--text-primary)]">
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent}>
+            <div className={styles.modalHeader}>
+              <h3 className={styles.modalTitle}>
                 {editingFaculty ? "Edit Faculty" : "Add Faculty"}
               </h3>
               <button
                 onClick={handleCloseModal}
-                className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                className={styles.iconBtn}
               >
-                <X className="w-5 h-5" />
+                <X size={20} />
               </button>
             </div>
             
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
-                  Name *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-primary)]"
-                  placeholder="e.g. Dr. Smith"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
-                  Email Address *
-                </label>
-                <input
-                  type="email"
-                  required
-                  disabled={!!editingFaculty}
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-primary)] disabled:opacity-50"
-                  placeholder="faculty@college.edu"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
-                  Department
-                </label>
-                <input
-                  type="text"
-                  value={formData.department}
-                  onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                  className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-primary)]"
-                  placeholder="e.g. Computer Science"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
-                  {editingFaculty ? "New Password (Optional)" : "Password *"}
-                </label>
-                <div className="relative">
-                  <Key className="absolute left-3 top-2.5 w-5 h-5 text-[var(--text-secondary)]" />
+            <form onSubmit={handleSubmit}>
+              <div className={styles.modalBody}>
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>Name *</label>
                   <input
-                    type="password"
-                    required={!editingFaculty}
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg pl-10 pr-4 py-2 text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-primary)]"
-                    placeholder={editingFaculty ? "Leave blank to keep same" : "Enter secure password"}
+                    type="text"
+                    required
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className={styles.input}
+                    placeholder="e.g. Dr. Smith"
                   />
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>Email Address *</label>
+                  <input
+                    type="email"
+                    required
+                    disabled={!!editingFaculty}
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    className={styles.input}
+                    placeholder="faculty@college.edu"
+                  />
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>Department</label>
+                  <input
+                    type="text"
+                    value={formData.department}
+                    onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                    className={styles.input}
+                    placeholder="e.g. Computer Science"
+                  />
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>
+                    {editingFaculty ? "New Password (Optional)" : "Password *"}
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <Key size={20} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
+                    <input
+                      type="password"
+                      required={!editingFaculty}
+                      value={formData.password}
+                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                      className={styles.input}
+                      style={{ paddingLeft: '40px' }}
+                      placeholder={editingFaculty ? "Leave blank to keep same" : "Enter secure password"}
+                    />
+                  </div>
                 </div>
               </div>
 
-              <div className="pt-4 flex justify-end gap-3">
+              <div className={styles.modalFooter} style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--border-color)' }}>
                 <button
                   type="button"
                   onClick={handleCloseModal}
-                  className="px-4 py-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                  className={styles.secondaryButton}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="bg-[var(--accent-primary)] text-white px-6 py-2 rounded-lg hover:bg-[var(--accent-hover)] transition-colors disabled:opacity-50"
+                  className={styles.primaryButton}
                 >
                   {isSubmitting ? "Saving..." : "Save Faculty"}
                 </button>
