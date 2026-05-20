@@ -4,7 +4,8 @@ import { useState } from "react";
 import styles from "../../app/events/events.module.css";
 
 type MCQQuestion = {
-  text: string;
+  text?: string;
+  question?: string;
   options: { label: string; text: string }[];
   correct: string;
   marks: number;
@@ -61,7 +62,7 @@ export default function EventMcqRound({ round, onComplete }: EventMcqRoundProps)
       </div>
       
       <div className={styles.mcqQuestionBox}>
-        <div className={styles.mcqText}>{currentQ.text}</div>
+        <div className={styles.mcqText}>{currentQ.text || currentQ.question}</div>
         
         <div className={styles.mcqOptions}>
           {currentQ.options.map(opt => {

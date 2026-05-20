@@ -26,7 +26,13 @@ function shuffleArray(array: any[]) {
 
 export default function EventJumbleRound({ round, onComplete }: EventJumbleRoundProps) {
   const config = round.config_json || {};
-  const originalLines: JumbleLine[] = config.lines || [];
+  const rawLines = config.lines || [];
+  const originalLines: JumbleLine[] = rawLines.map((line: any, index: number) => {
+    if (typeof line === 'string') {
+      return { id: `line-${index}`, text: line };
+    }
+    return line;
+  });
   
   // Initialize with shuffled lines
   const [lines, setLines] = useState<JumbleLine[]>(() => {

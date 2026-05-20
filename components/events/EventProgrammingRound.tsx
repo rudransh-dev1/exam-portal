@@ -18,7 +18,7 @@ export default function EventProgrammingRound({ round, onComplete }: EventProgra
   const language = config.language || "python";
   const testCases = (config.testCases || config.test_cases || []).map((tc: any, i: number) => ({
     input: tc.input || "",
-    expected_output: tc.expected_output || tc.expectedOutput || "",
+    expected_output: tc.expected_output || tc.expectedOutput || tc.expected || "",
     is_hidden: tc.is_hidden || false,
     description: tc.description || `Test Case ${i + 1}`,
   }));
