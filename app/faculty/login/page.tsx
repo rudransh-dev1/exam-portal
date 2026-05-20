@@ -47,14 +47,13 @@ export default function FacultyLoginPage() {
     setSuccess("");
     setLoading(true);
 
-    const apiBase = process.env.NEXT_PUBLIC_API_URL || "";
     const endpoint = isLogin ? "/py-api/faculty/login" : "/py-api/faculty/signup";
     const body = isLogin 
       ? { email, password }
       : { name, email, password, branches: selectedBranches };
 
     try {
-      const res = await fetch(`${apiBase}${endpoint}`, {
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
