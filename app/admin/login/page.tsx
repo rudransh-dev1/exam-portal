@@ -18,7 +18,7 @@ export default function AdminLoginPage() {
     setLoading(true);
     setError("");
     try {
-      const r = await fetch("/api/admin/auth/login", {
+      const r = await fetch("/py-api/admin/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password: pass }),

@@ -345,7 +345,7 @@ export default function AdminPage() {
   const handleBanStudent = async (s: StudentRow) => {
     if (!confirm(`Ban ${s.name}? This will LOCK them out of the portal. Reset to unban.`)) return;
     try {
-      await fetch(`/api/admin/students/${s.student_id}/ban`, {
+      await fetch(`/py-api/admin/students/${s.student_id}/ban`, {
         method: "POST",
         headers: { "x-admin-secret": process.env.NEXT_PUBLIC_ADMIN_SECRET || "rudranshsarvam" }
       });
@@ -853,7 +853,7 @@ function QuestionsTab({ students }: { students: StudentRow[] }) {
   // loadConfig: re-fetches exam active state from server — always call after activate/deactivate
   const loadConfig = useCallback(async () => {
     try {
-      const configRes = await fetch(`/api/admin/exam/config/public?t=${Date.now()}`, {
+      const configRes = await fetch(`/py-api/admin/exam/config/public?t=${Date.now()}`, {
         cache: "no-store",
         headers: { "Cache-Control": "no-cache, no-store, must-revalidate" }
       }).then(r => r.json());
@@ -1825,7 +1825,7 @@ function StudentsTab() {
     setCsvUploading(true); setCsvResult(null);
     try {
       const fd = new FormData(); fd.append("file", file);
-      const r = await fetch("/api/admin/students/bulk", {
+      const r = await fetch("/py-api/admin/students/bulk", {
         method:"POST", headers:{"x-admin-secret": process.env.NEXT_PUBLIC_ADMIN_SECRET||"rudranshsarvam"}, body:fd
       });
       setCsvResult(await r.json()); load();

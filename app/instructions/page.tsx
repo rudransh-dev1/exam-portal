@@ -93,7 +93,7 @@ export default function InstructionsPage() {
     if (!token) return;
 
     try {
-      const res = await fetch(`/api/exam/questions?title=${encodeURIComponent(title)}&_=${Date.now()}`, {
+      const res = await fetch(`/py-api/exam/questions?title=${encodeURIComponent(title)}&_=${Date.now()}`, {
         headers: { "Authorization": `Bearer ${token}` }
       });
       if (res.ok) {
@@ -112,7 +112,7 @@ export default function InstructionsPage() {
     if (!token) return;
 
     try {
-      const res = await fetch(`/api/admin/exam/config/public?_=${Date.now()}`, {
+      const res = await fetch(`/py-api/admin/exam/config/public?_=${Date.now()}`, {
         headers: { "Authorization": `Bearer ${token}` }
       });
       const configs = await res.json();

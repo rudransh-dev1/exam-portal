@@ -135,7 +135,7 @@ async function loadPyHuntConfigAsync(): Promise<PyHuntConfig> {
   // ── Route through backend (bypasses Supabase RLS) ──
   // Always fetch fresh from backend — never trust stale localStorage
   try {
-    const res = await fetch(`/api/admin/pyhunt/config?t=${Date.now()}`, {
+    const res = await fetch(`/py-api/admin/pyhunt/config?t=${Date.now()}`, {
       cache: "no-store",
       headers: { "Cache-Control": "no-cache, no-store, must-revalidate" },
     });
@@ -307,7 +307,7 @@ function ClueScreen({ roundId, clue, onUnlock }: { roundId: number; clue: ClueCo
       setUnlocked(true);
       try {
         const examToken = sessionStorage.getItem("exam_token") || "";
-        await fetch("/api/exam/pyhunt/unlock", {
+        await fetch("/py-api/exam/pyhunt/unlock", {
           method: "POST",
           headers: { "Content-Type": "application/json", "Authorization": `Bearer ${examToken}` },
           body: JSON.stringify({ round_id: roundId, submitted_pass_code: submitted })
@@ -1093,7 +1093,7 @@ function RoundJumbleDual({
     else {
       try {
         const examToken = sessionStorage.getItem("exam_token") || "";
-        await fetch("/api/exam/pyhunt/complete-round", {
+        await fetch("/py-api/exam/pyhunt/complete-round", {
           method: "POST",
           headers: { "Content-Type": "application/json", "Authorization": `Bearer ${examToken}` },
           body: JSON.stringify({ round_id: 2 })
@@ -1524,7 +1524,7 @@ export default function PyHuntPage() {
           round4_code: round4Code || undefined,
         };
 
-        await fetch("/api/exam/pyhunt/sync-progress", {
+        await fetch("/py-api/exam/pyhunt/sync-progress", {
           method: "POST",
           headers: { "Content-Type": "application/json", "Authorization": `Bearer ${examToken}` },
           body: JSON.stringify(payload),

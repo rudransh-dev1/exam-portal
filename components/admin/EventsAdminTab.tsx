@@ -62,7 +62,7 @@ export default function EventsAdminTab() {
 
   const fetchEvents = useCallback(async () => {
     try {
-      const data = await adminFetch<EventItem[]>("/py-api/admin/events");
+      const data = await adminFetch<EventItem[]>("/admin/events");
       setEvents(data || []);
     } catch (err) {
       console.error("Failed to load events:", err);
@@ -73,7 +73,7 @@ export default function EventsAdminTab() {
 
   const fetchEventDetail = useCallback(async (eventId: string) => {
     try {
-      const data = await adminFetch<EventItem>(`/py-api/admin/events/${eventId}`);
+      const data = await adminFetch<EventItem>(`/admin/events/${eventId}`);
       setSelectedEvent(data);
     } catch (err) {
       console.error("Failed to load event:", err);
@@ -86,7 +86,7 @@ export default function EventsAdminTab() {
     if (!newName.trim()) return;
     setSaving(true);
     try {
-      await adminFetch("/py-api/admin/events", { method: "POST", body: JSON.stringify({ name: newName.trim() }) });
+      await adminFetch("/admin/events", { method: "POST", body: JSON.stringify({ name: newName.trim() }) });
       setNewName("");
       setShowCreate(false);
       fetchEvents();
@@ -100,7 +100,7 @@ export default function EventsAdminTab() {
   const handleDeleteEvent = async (eventId: string) => {
     if (!confirm("Delete this event and all its rounds? This cannot be undone.")) return;
     try {
-      await adminFetch(`/py-api/admin/events/${eventId}`, { method: "DELETE" });
+      await adminFetch(`/admin/events/${eventId}`, { method: "DELETE" });
       setSelectedEvent(null);
       fetchEvents();
     } catch (err: any) {
@@ -110,7 +110,7 @@ export default function EventsAdminTab() {
 
   const handleToggleActive = async (eventId: string, currentActive: boolean) => {
     try {
-      await adminFetch(`/py-api/admin/events/${eventId}`, { method: "PATCH", body: JSON.stringify({ is_active: !currentActive }) });
+      await adminFetch(`/admin/events/${eventId}`, { method: "PATCH", body: JSON.stringify({ is_active: !currentActive }) });
       fetchEvents();
       if (selectedEvent?.id === eventId) fetchEventDetail(eventId);
     } catch (err: any) {
@@ -125,7 +125,7 @@ export default function EventsAdminTab() {
         programming: { title: "Coding Challenge", description: "", starterCode: "", testCases: [], language: "python", hint: "" },
         jumble: { title: "Code Jumble", description: "Drag lines into correct order", lines: [] },
       };
-      await adminFetch(`/py-api/admin/events/${eventId}/rounds`, {
+      await adminFetch(`/admin/events/${eventId}/rounds`, {
         method: "POST",
         body: JSON.stringify({
           round_type: roundType,
@@ -142,7 +142,7 @@ export default function EventsAdminTab() {
   const handleDeleteRound = async (eventId: string, roundId: string) => {
     if (!confirm("Delete this round?")) return;
     try {
-      await adminFetch(`/py-api/admin/events/${eventId}/rounds/${roundId}`, { method: "DELETE" });
+      await adminFetch(`/admin/events/${eventId}/rounds/${roundId}`, { method: "DELETE" });
       fetchEventDetail(eventId);
     } catch (err: any) {
       alert("Delete failed: " + err.message);
@@ -151,7 +151,7 @@ export default function EventsAdminTab() {
 
   const handleSaveRound = async (eventId: string, roundId: string, updates: any) => {
     try {
-      await adminFetch(`/py-api/admin/events/${eventId}/rounds/${roundId}`, {
+      await adminFetch(`/admin/events/${eventId}/rounds/${roundId}`, {
         method: "PATCH",
         body: JSON.stringify(updates),
       });

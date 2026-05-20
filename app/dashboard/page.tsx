@@ -357,7 +357,7 @@ export default function DashboardPage() {
       const token = sessionStorage.getItem("exam_token") || "";
       if (r.id) {
         // Delete from backend
-        await fetch(`/api/exam/history/${r.id}`, {
+        await fetch(`/py-api/exam/history/${r.id}`, {
           method: "DELETE",
           headers: { "Authorization": `Bearer ${token}` }
         });
@@ -453,7 +453,7 @@ export default function DashboardPage() {
     const token = sessionStorage.getItem("exam_token");
     if (token) {
       try {
-        const res = await fetch(`/api/exam/status?_=${Date.now()}`, {
+        const res = await fetch(`/py-api/exam/status?_=${Date.now()}`, {
           headers: { "Authorization": `Bearer ${token}` }
         });
         const statusData = await res.json();

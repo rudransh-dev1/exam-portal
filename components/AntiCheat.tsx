@@ -70,7 +70,7 @@ export default function AntiCheat({
     setTerminated(true);
     setOverlayVisible(true);
 
-    fetch("/api/exam/report-violation", {
+    fetch("/py-api/exam/report-violation", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${authToken}` },
       body: JSON.stringify({
@@ -101,7 +101,7 @@ export default function AntiCheat({
     onViolation?.(type, { strike: currentStrikes });
 
     // Non-blocking server report
-    fetch("/api/exam/report-violation", {
+    fetch("/py-api/exam/report-violation", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${authToken}` },
       body: JSON.stringify({
