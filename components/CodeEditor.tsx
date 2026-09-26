@@ -519,26 +519,7 @@ export default function CodeEditor({
                 onSubmit(code, results, passedCount, testCases.length);
               }
             }}
-            style={{
-              padding: "9px 24px",
-              background: "linear-gradient(135deg, #10B981, #059669)",
-              color: "white",
-              border: "none",
-              borderRadius: "10px",
-              fontSize: "14px",
-              fontWeight: "800",
-              cursor: "pointer",
-              transition: "all 0.15s",
-              boxShadow: "0 4px 14px rgba(16, 185, 129, 0.3)",
-            }}
-            onMouseOver={(e) => {
-              e.currentTarget.style.transform = "translateY(-1px)";
-              e.currentTarget.style.boxShadow = "0 6px 20px rgba(16, 185, 129, 0.4)";
-            }}
-            onMouseOut={(e) => {
-              e.currentTarget.style.transform = "none";
-              e.currentTarget.style.boxShadow = "0 4px 14px rgba(16, 185, 129, 0.3)";
-            }}
+            className={styles.submitBtn}
           >
             Submit & Continue →
           </button>

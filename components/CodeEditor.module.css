@@ -153,3 +153,22 @@
 .runBtn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
 
 .submittedLabel { color: rgba(255,255,255,0.3); font-size: 12px; }
+
+.submitBtn {
+  padding: 9px 24px;
+  background: linear-gradient(135deg, #10B981, #059669);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.15s;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+  font-family: inherit;
+}
+
+.submitBtn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+}

@@ -394,13 +394,14 @@ export default function DashboardPage() {
       
       // Split by comma and check for exact match or special keywords
       const branches = eb.split(',').map(b => b.trim());
+      const branchesSet = new Set(branches);
       const branchMatch = 
         eb === "GLOBAL" || 
         eb === "ALL" || 
         eb === "" || 
-        branches.includes(sb) || 
-        branches.includes("ALL") || 
-        branches.includes("GLOBAL") ||
+        branchesSet.has(sb) || 
+        branchesSet.has("ALL") || 
+        branchesSet.has("GLOBAL") ||
         eb.includes(sb); // Fallback for partial matches
 
       if (!branchMatch) return false;
